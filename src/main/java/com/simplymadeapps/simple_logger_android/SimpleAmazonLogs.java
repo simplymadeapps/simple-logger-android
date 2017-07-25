@@ -14,6 +14,6 @@ public class SimpleAmazonLogs {
 
     // Test for Bill
     public void thisIsATestMethod() {
-
+        // Test
     }
 }

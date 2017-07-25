@@ -11,4 +11,9 @@ public class SimpleAmazonLogs {
     public void doSomething() {
 
     }
+
+    // Test for Bill
+    public void thisIsATestMethod() {
+
+    }
 }

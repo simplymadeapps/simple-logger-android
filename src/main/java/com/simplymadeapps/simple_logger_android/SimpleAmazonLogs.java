@@ -17,10 +17,10 @@ import java.util.List;
 
 public class SimpleAmazonLogs {
 
-    private final static String PREF_KEY = "com.simplymadeapps.simple_logger_android.logs";
-    private SharedPreferences preferences;
-    private SharedPreferences.Editor editor;
-    private Gson gson;
+    protected final static String PREF_KEY = "com.simplymadeapps.simple_logger_android.logs";
+    protected SharedPreferences preferences;
+    protected SharedPreferences.Editor editor;
+    protected Gson gson;
 
     // Constructor
     // context - Used to access the storage
@@ -28,6 +28,11 @@ public class SimpleAmazonLogs {
         preferences = PreferenceManager.getDefaultSharedPreferences(context);
         editor = preferences.edit();
         gson = new Gson();
+    }
+
+    // Empty constructor helpful for testing
+    protected SimpleAmazonLogs() {
+        // empty constructor
     }
 
     // Takes a string to store as a log.  The time stamp will be added automatically

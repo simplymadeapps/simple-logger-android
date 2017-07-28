@@ -1,20 +1,23 @@
 package com.simplymadeapps.simple_logger_android;
 
+import fr.xebia.android.freezer.annotations.Model;
+
+@Model
 public class RecordedLog {
 
-    private String log;
-    private String date;
-    private long epoch;
+    public String log;
+    public String date;
+    public String time;
+    public long epoch;
 
-    protected RecordedLog(String log, String date, long epoch) {
-        this.log = log;
-        this.date = date;
-        this.epoch = epoch;
+    protected RecordedLog() {
+        // needed for library
     }
 
-    // Returns true if this log is older than a week
-    protected boolean isLogAWeekOld() {
-        long one_week_ago = System.currentTimeMillis() - 604800000;
-        return one_week_ago > epoch;
+    protected RecordedLog(String log, String date, String time, long epoch) {
+        this.log = log;
+        this.date = date;
+        this.time = time;
+        this.epoch = epoch;
     }
 }

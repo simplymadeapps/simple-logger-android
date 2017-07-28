@@ -5,6 +5,7 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:2.1.3'
         classpath 'com.vanniktech:gradle-android-junit-jacoco-plugin:0.6.0'
+        classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
     }
 }
 
@@ -37,9 +38,17 @@ repositories {
     mavenCentral()
 }
 
+apply plugin: 'com.neenbedankt.android-apt'
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.google.code.gson:gson:2.8.0'
+    compile 'com.amazonaws:aws-android-sdk-core:2.3.9'
+    compile 'com.amazonaws:aws-android-sdk-s3:2.3.9'
+
+    compile 'fr.xebia.android.freezer:freezer:2.0.6'
+    provided 'fr.xebia.android.freezer:freezer-annotations:2.0.6'
+    apt 'fr.xebia.android.freezer:freezer-compiler:2.0.6'
 
     testCompile 'junit:junit:4.12'
     testCompile 'org.powermock:powermock-api-mockito:1.6.6'

@@ -95,7 +95,7 @@ public class SimpleAmazonLogs {
         }
     }
 
-    public List<List<RecordedLog>> getListOfListOfLogsToUpload() {
+    protected List<List<RecordedLog>> getListOfListOfLogsToUpload() {
         List<List<RecordedLog>> list_of_lists = new ArrayList<>();
         for(int i = 0; i < 7; i++) {
             List<RecordedLog> logs_from_day = getLogsFromSpecificDay(offsetDateString(i));

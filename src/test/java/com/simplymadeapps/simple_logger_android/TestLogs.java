@@ -1,109 +1,119 @@
 package com.simplymadeapps.simple_logger_android;
 
-import com.google.gson.Gson;
+import android.app.Application;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 
+import junit.framework.Assert;
+
+import org.junit.Before;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import java.util.Date;
+import java.util.List;
+
+import fr.xebia.android.freezer.QueryBuilder;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.powermock.api.mockito.PowerMockito.doReturn;
+import static org.powermock.api.mockito.PowerMockito.mock;
+import static org.powermock.api.mockito.PowerMockito.mockStatic;
+
 @RunWith(PowerMockRunner.class)
-@PrepareForTest( { Gson.class })
+@PrepareForTest( { PreferenceManager.class })
 public class TestLogs {
 
-//    @Test
-//    public void testRecordedLogAWeekOld() {
-//        long system_time = System.currentTimeMillis();
-//        RecordedLog log = new RecordedLog("text","date",system_time-604803000); // This time is 1 week and 3 seconds old
-//        Assert.assertTrue(log.isLogAWeekOld());
-//    }
-//
-//    @Test
-//    public void testRecordedLogNotAWeekOld() {
-//        long system_time = System.currentTimeMillis();
-//        RecordedLog log = new RecordedLog("text","date",system_time-604700000); // This time is 6 days old
-//        Assert.assertFalse(log.isLogAWeekOld());
-//    }
-//
-//    @Test
-//    public void testAddLog() {
-//        SimpleAmazonLogs calling_class = spy(new SimpleAmazonLogs());
-//
-//        SharedPreferences.Editor editor = mock(SharedPreferences.Editor.class);
-//        Gson gson = PowerMockito.mock(Gson.class);
-//
-//        doReturn(new ArrayList<RecordedLog>()).when(calling_class).getLogs();
-//        doReturn(editor).when(editor).putString(PREF_KEY, "json");
-//        doReturn(true).when(editor).commit();
-//        doReturn("json").when(gson).toJson(any(List.class));
-//
-//        calling_class.gson = gson;
-//        calling_class.editor = editor;
-//        calling_class.addLog("testing logs");
-//
-//        verify(gson, times(1)).toJson(any(List.class));
-//        verify(editor, times(1)).putString(PREF_KEY, "json");
-//        verify(editor, times(1)).commit();
-//    }
-//
-//    @Test
-//    public void getLogsEmpty() {
-//        SimpleAmazonLogs calling_class = spy(new SimpleAmazonLogs());
-//
-//        SharedPreferences prefs = mock(SharedPreferences.class);
-//        Gson gson = PowerMockito.mock(Gson.class);
-//
-//        doReturn("").when(prefs).getString(PREF_KEY, "");
-//
-//        calling_class.preferences = prefs;
-//        calling_class.gson = gson;
-//
-//        Assert.assertEquals(0, calling_class.getLogs().size());
-//    }
-//
-//    @Test
-//    public void getLogsMultiple() {
-//        SimpleAmazonLogs calling_class = spy(new SimpleAmazonLogs());
-//
-//        SharedPreferences prefs = mock(SharedPreferences.class);
-//        Gson gson = PowerMockito.mock(Gson.class);
-//
-//        doReturn("not_empty").when(prefs).getString(PREF_KEY, "");
-//        doReturn(null).when(gson).fromJson(eq("not_empty"), any(Type.class));
-//        doReturn(new ArrayList<RecordedLog>()).when(calling_class).pruneLogs(null);
-//
-//        calling_class.preferences = prefs;
-//        calling_class.gson = gson;
-//
-//        Assert.assertEquals(0, calling_class.getLogs().size());
-//    }
-//
-//    @Test
-//    public void getDateString() {
-//        SimpleAmazonLogs calling_class = new SimpleAmazonLogs();
-//
-//        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
-//        Date currentDateTime = Calendar.getInstance().getTime();
-//        String match = sdf.format(currentDateTime);
-//
-//        Assert.assertEquals(match, calling_class.currentTimeString());
-//    }
-//
-//    @Test
-//    public void testPruneLogs() {
-//        SimpleAmazonLogs calling_class = new SimpleAmazonLogs();
-//
-//        List<RecordedLog> logs = new ArrayList<>();
-//        logs.add(new RecordedLog("string0","date",System.currentTimeMillis() - 700000000)); // This log is over a week old
-//        logs.add(new RecordedLog("string1","date",System.currentTimeMillis() - 604950000)); // This log is over a week old
-//        logs.add(new RecordedLog("string2","date",System.currentTimeMillis() - 604900000)); // This log is over a week old
-//        logs.add(new RecordedLog("string3","date",System.currentTimeMillis() - 304900000)); // This log is not a week old
-//        logs.add(new RecordedLog("string4","date",System.currentTimeMillis() - 104900000)); // This log is not a week old
-//        logs.add(new RecordedLog("string5","date",System.currentTimeMillis())); // This log is not a week old
-//
-//        List<RecordedLog> final_list = calling_class.pruneLogs(logs);
-//        Assert.assertEquals(3, final_list.size());
-//        Assert.assertEquals("string3", final_list.get(0).log);
-//        Assert.assertEquals("string4", final_list.get(1).log);
-//        Assert.assertEquals("string5", final_list.get(2).log);
-//    }
+    @Before
+    public void setup() {
+        RecordedLogEntityManager rlem = mock(RecordedLogEntityManager.class);
+        SharedPreferences preferences = mock(SharedPreferences.class);
+        SharedPreferences.Editor editor = mock(SharedPreferences.Editor.class);
+        doReturn(editor).when(editor).putInt(SimpleAmazonLogs.KEEP_IN_STORAGE_KEY, 7);
+        doReturn(true).when(editor).commit();
+        SimpleAmazonLogs.daysToKeepInStorage = 7;
+        SimpleAmazonLogs.rlem = rlem;
+        SimpleAmazonLogs.editor = editor;
+        SimpleAmazonLogs.preferences = preferences;
+        RecordedLogQueryBuilder rlqb = mock(RecordedLogQueryBuilder.class);
+        QueryBuilder.DateSelector ds = mock(QueryBuilder.DateSelector.class);
+        doReturn(rlqb).when(rlem).select();
+        doReturn(ds).when(rlqb).recordDate();
+        doReturn(rlqb).when(ds).before(any(Date.class));
+        doReturn(rlqb).when(ds).between(any(Date.class), any(Date.class));
+        doReturn(null).when(rlqb).asList();
+    }
+
+    @Test
+    public void test_init() {
+        Application application = mock(Application.class);
+
+        SharedPreferences preferences = mock(SharedPreferences.class);
+        SharedPreferences.Editor editor = mock(SharedPreferences.Editor.class);
+
+        mockStatic(PreferenceManager.class);
+        doReturn(preferences).when(PreferenceManager.class);
+        PreferenceManager.getDefaultSharedPreferences(any(Context.class));
+        doReturn(editor).when(preferences).edit();
+        doReturn(7).when(preferences).getInt(SimpleAmazonLogs.KEEP_IN_STORAGE_KEY, 7);
+
+        SimpleAmazonLogs.init(application);
+
+        Assert.assertNotNull(SimpleAmazonLogs.instance);
+        Assert.assertNotNull(SimpleAmazonLogs.rlem);
+        Assert.assertNotNull(SimpleAmazonLogs.preferences);
+        Assert.assertNotNull(SimpleAmazonLogs.editor);
+        Assert.assertEquals(SimpleAmazonLogs.daysToKeepInStorage, 7);
+    }
+
+    @Test
+    public void test_addLog() {
+        SimpleAmazonLogs.addLog("Test");
+        verify(SimpleAmazonLogs.rlem, times(1)).add(any(RecordedLog.class));
+        verify(SimpleAmazonLogs.rlem, times(1)).delete(any(List.class));
+    }
+
+    @Test
+    public void test_getAllLogs() {
+        Assert.assertNull(SimpleAmazonLogs.getAllLogs());
+    }
+
+    @Test
+    public void test_setStorageDuration() {
+        SimpleAmazonLogs.setStorageDuration(3);
+        Assert.assertEquals(SimpleAmazonLogs.daysToKeepInStorage, 3);
+        verify(SimpleAmazonLogs.editor, times(1)).commit();
+        verify(SimpleAmazonLogs.editor, times(1)).putInt(SimpleAmazonLogs.KEEP_IN_STORAGE_KEY, 3);
+    }
+
+    @Test
+    public void test_deleteAllLogs() {
+        SimpleAmazonLogs.deleteAllLogs();
+        verify(SimpleAmazonLogs.rlem, times(1)).deleteAll();
+    }
+
+    @Test
+    public void test_setAmazonCredentials() {
+        Assert.assertEquals(SimpleAmazonLogs.access_token, "");
+        Assert.assertEquals(SimpleAmazonLogs.bucket, "");
+        Assert.assertEquals(SimpleAmazonLogs.secret_token, "");
+        Assert.assertNull(SimpleAmazonLogs.region);
+
+
+        SimpleAmazonLogs.setAmazonCredentials("1","2","3",null);
+
+        Assert.assertEquals(SimpleAmazonLogs.access_token, "1");
+        Assert.assertEquals(SimpleAmazonLogs.bucket, "3");
+        Assert.assertEquals(SimpleAmazonLogs.secret_token, "2");
+    }
+
+    @Test
+    public void test_getLogsFromSpecificDay() {
+        Assert.assertNull(SimpleAmazonLogs.getLogsFromSpecificDay(1));
+    }
 }

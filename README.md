@@ -2,34 +2,36 @@
 A simple library for Android that stores logs and uploads them as text files to Amazon S3.
 # Getting Started
 // To do
-Add permissions to AndroidManifest.xml
+
+Add permissions to AndroidManifest.xml:
 ```
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 ```
+Initialize the logger - this should be called at the start of your application or from the launcher activity and must be called before calling any other functions:
+```javascript
+SimpleAmazonLogs.init(getApplication());
+```
 # Usage
 To record a log:
 ```javascript
-SimpleAmazonLogs logger = SimpleAmazonLogs.getInstance(getApplication());
-logger.addLog("Your log entry goes here.");
+SimpleAmazonLogs.addLog("Your log entry goes here.");
 ```
 To view all records:
 ```javascript
-SimpleAmazonLogs logger = SimpleAmazonLogs.getInstance(getApplication());
-List<RecordedLog> logs = logger.getAllLogs();
+List<RecordedLog> logs = SimpleAmazonLogs.getAllLogs();
 ```
 To upload logs:
 ```javascript
-SimpleAmazonLogs logger = SimpleAmazonLogs.getInstance(getApplication());
 // You will need credentials to store to Amazon S3
-logger.setAmazonCredentials(access_token, secret_token, bucket, region);
+SimpleAmazonLogs.setAmazonCredentials(access_token, secret_token, bucket, region);
 // Upload to Amazon S3 into specified directory
-logger.uploadLogsToAmazon(directory, new SimpleAmazonLogCallback() {
+SimpleAmazonLogs.uploadLogsToAmazon(directory, new SimpleAmazonLogCallback() {
 	@Override
 	public void onSuccess() {
 
 	@Override
-	public void onFailure(String reason) {
+	public void onFailure(Exception e, int successful, int failures) {
 	}
 });
 ```

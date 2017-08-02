@@ -38,7 +38,7 @@ public class SimpleAmazonLogs {
     protected static SharedPreferences preferences;
     protected static SharedPreferences.Editor editor;
 
-    private static final String KEEP_IN_STORAGE_KEY = "com.simplymadeapps.simple_logger_android_storage_duration";
+    protected static final String KEEP_IN_STORAGE_KEY = "com.simplymadeapps.simple_logger_android_storage_duration";
 
     protected static String access_token = "";
     protected static String secret_token = "";
@@ -152,12 +152,22 @@ public class SimpleAmazonLogs {
     // 06/25 11:59:99 < date < 06/26 12:00:00
     // So it should give all logs perfectly for that date
     protected static List<RecordedLog> getLogsFromSpecificDay(int daysAgo) {
+        Date min = getLowerBoundDate(daysAgo);
+        Date max = getUpperBoundDate(daysAgo);
+        return rlem.select().recordDate().between(min, max).asList();
+    }
+
+    // Get the lower bound of the date
+    protected static Date getLowerBoundDate(int daysAgo) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(getPreviousDate(daysAgo));
         calendar.add(Calendar.MILLISECOND, -1);
-        Date min = calendar.getTime();
-        Date max = getPreviousDate(daysAgo-1);
-        return rlem.select().recordDate().between(min, max).asList();
+        return calendar.getTime();
+    }
+
+    // Get the lower bound of the date
+    protected static Date getUpperBoundDate(int daysAgo) {
+        return getPreviousDate(daysAgo-1);
     }
 
     // Get list of list of logs to be uploaded - one list of logs per day

@@ -23,6 +23,9 @@ android {
         versionName "1.0"
 
     }
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
     buildTypes {
         release {
             minifyEnabled false

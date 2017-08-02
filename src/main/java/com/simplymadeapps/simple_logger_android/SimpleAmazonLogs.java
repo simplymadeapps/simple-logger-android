@@ -4,7 +4,6 @@ import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-import android.util.Log;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
@@ -31,31 +30,30 @@ public class SimpleAmazonLogs {
 
     protected static SimpleAmazonLogs instance;
 
-    protected RecordedLogEntityManager rlem;
-    protected Context context;
+    protected static RecordedLogEntityManager rlem;
+    protected static Context context;
 
-    protected int daysToKeepInStorage;
+    protected static int daysToKeepInStorage;
 
-    protected SharedPreferences preferences;
-    protected SharedPreferences.Editor editor;
+    protected static SharedPreferences preferences;
+    protected static SharedPreferences.Editor editor;
 
-    private static final String KEY_1 = "com.simplymadeapps.simple_logger_android_storage_duration";
+    private static final String KEEP_IN_STORAGE_KEY = "com.simplymadeapps.simple_logger_android_storage_duration";
 
-    protected String access_token = "";
-    protected String secret_token = "";
-    protected String amazon_bucket = "";
-    protected Regions amazon_region = null;
+    protected static String access_token = "";
+    protected static String secret_token = "";
+    protected static String bucket = "";
+    protected static Regions region = null;
 
 
     /**
      * @param application the application object used for storing records
      * @return the entry point for adding, reading, and uploading logs
      */
-    public static SimpleAmazonLogs getInstance(Application application) {
+    public static void init(Application application) {
         if(instance == null) {
             instance = new SimpleAmazonLogs(application);
         }
-        return instance;
     }
 
     // Constructor
@@ -65,13 +63,13 @@ public class SimpleAmazonLogs {
         this.rlem = new RecordedLogEntityManager();
         this.preferences = PreferenceManager.getDefaultSharedPreferences(context);
         this.editor = preferences.edit();
-        this.daysToKeepInStorage = preferences.getInt(KEY_1, 7);
+        this.daysToKeepInStorage = preferences.getInt(KEEP_IN_STORAGE_KEY, 7);
     }
 
     /**
      * @param log takes a string and stores it as a log.  The time stamp will be added automatically.
      */
-    public void addLog(String log) {
+    public static void addLog(String log) {
         rlem.add(new RecordedLog(log, Calendar.getInstance().getTime()));
         clearOldLogs();  // Because adding a log is called frequently, we will use it to check for week old logs and delete them
     }
@@ -79,15 +77,15 @@ public class SimpleAmazonLogs {
     /**
      * @return returns all currently stored logs
      */
-    public List<RecordedLog> getAllLogs() {
+    public static List<RecordedLog> getAllLogs() {
         return rlem.select().asList();
     }
 
     /**
      * @param days sets how long we should keep logs stored locally - by default, logs are deleted after 7 days
      */
-    public void setStorageDuration(int days) {
-        editor.putInt(KEY_1, days);
+    public static void setStorageDuration(int days) {
+        editor.putInt(KEEP_IN_STORAGE_KEY, days);
         editor.commit();
         daysToKeepInStorage = days;
         clearOldLogs();
@@ -96,25 +94,25 @@ public class SimpleAmazonLogs {
     /**
      * Deletes all stored records
      */
-    public void deleteAllLogs() {
+    public static void deleteAllLogs() {
         rlem.deleteAll();
     }
 
     /**
-     * @param access_token your access token for Amazon S3
-     * @param secret_token your secret token for Amazon S3
+     * @param amazon_access_token your access token for Amazon S3
+     * @param amazon_secret_token your secret token for Amazon S3
      * @param amazon_bucket the name of your bucket for Amazon S3
      * @param amazon_region the region your Amazon S3 is located
      */
-    public void setAmazonCredentials(String access_token, String secret_token, String amazon_bucket, Regions amazon_region) {
-        this.access_token = access_token;
-        this.secret_token = secret_token;
-        this.amazon_bucket = amazon_bucket;
-        this.amazon_region = amazon_region;
+    public static void setAmazonCredentials(String amazon_access_token, String amazon_secret_token, String amazon_bucket, Regions amazon_region) {
+        access_token = amazon_access_token;
+        secret_token = amazon_secret_token;
+        bucket = amazon_bucket;
+        region = amazon_region;
     }
 
     // Gets a date object that we will use to compare dates.
-    protected Date getPreviousDate(int daysAgo) {
+    protected static Date getPreviousDate(int daysAgo) {
         // Sets up a calendar to the current time
         Calendar today = Calendar.getInstance();
         Calendar calendar = new GregorianCalendar(today.get(Calendar.YEAR), today.get(Calendar.MONTH), today.get(Calendar.DAY_OF_MONTH));
@@ -125,13 +123,13 @@ public class SimpleAmazonLogs {
     }
 
     // Clear logs from storage that are older than the threshold
-    protected void clearOldLogs() {
+    protected static void clearOldLogs() {
         List<RecordedLog> week_old_logs = rlem.select().recordDate().before(getPreviousDate(daysToKeepInStorage-1)).asList();
         rlem.delete(week_old_logs);
     }
 
     // Will return a text file with all of the logs.  It will return null if there was an error creating the file
-    protected File createLogTextFile(List<RecordedLog> logs) {
+    protected static File createLogTextFile(List<RecordedLog> logs) {
         try {
             File file = File.createTempFile(System.currentTimeMillis()+"", ".txt");
             FileOutputStream stream = new FileOutputStream(file);
@@ -153,7 +151,7 @@ public class SimpleAmazonLogs {
     // The range will end up being as follows:
     // 06/25 11:59:99 < date < 06/26 12:00:00
     // So it should give all logs perfectly for that date
-    protected List<RecordedLog> getLogsFromSpecificDay(int daysAgo) {
+    protected static List<RecordedLog> getLogsFromSpecificDay(int daysAgo) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(getPreviousDate(daysAgo));
         calendar.add(Calendar.MILLISECOND, -1);
@@ -163,7 +161,7 @@ public class SimpleAmazonLogs {
     }
 
     // Get list of list of logs to be uploaded - one list of logs per day
-    protected List<List<RecordedLog>> getListOfListOfLogsToUpload() {
+    protected static List<List<RecordedLog>> getListOfListOfLogsToUpload() {
         List<List<RecordedLog>> list_of_lists = new ArrayList<>();
         for(int i = 0; i < daysToKeepInStorage; i++) {
             List<RecordedLog> logs_from_day = getLogsFromSpecificDay(i);
@@ -178,17 +176,17 @@ public class SimpleAmazonLogs {
      * @param directory the directory you wish to upload to on Amazon S3 - for example, 'app-logs/user-200/'
      * @param callback the callback for upload completion
      */
-    public void uploadLogsToAmazon(String directory, final SimpleAmazonLogCallback callback) {
+    public static void uploadLogsToAmazon(String directory, final SimpleAmazonLogCallback callback) {
         // Make sure they have setup credentials
-        if(access_token.isEmpty() || secret_token.isEmpty() || amazon_bucket.isEmpty() || amazon_region == null) {
-            callback.onFailure("You must call setAmazonCredentials() before uploading to Amazon");
+        if(access_token.isEmpty() || secret_token.isEmpty() || bucket.isEmpty() || region == null) {
+            callback.onFailure(new Exception("You must call setAmazonCredentials() before uploading to Amazon"), 0, 0);
         }
         else {
             // Create an S3 client
             AmazonS3 s3 = new AmazonS3Client(new BasicAWSCredentials(access_token,secret_token));
 
             // Set the region of your S3 bucket
-            s3.setRegion(Region.getRegion(amazon_region));
+            s3.setRegion(Region.getRegion(region));
 
             // We have to do an upload for each day of logs we have.  This could mean there is between 0 and 7 logs that need to be uploaded
             List<List<RecordedLog>> list_of_list_of_logs = getListOfListOfLogsToUpload();
@@ -205,7 +203,7 @@ public class SimpleAmazonLogs {
                 // Upload to amazon
                 TransferUtility transferUtility = new TransferUtility(s3, context);
                 TransferObserver observer = transferUtility.upload(
-                        amazon_bucket,     /* The bucket to upload to */
+                        bucket,     /* The bucket to upload to */
                         directory+filename+".txt",    /* The key for the uploaded object */
                         file        /* The file where the data to upload exists */
                 );
@@ -221,11 +219,11 @@ public class SimpleAmazonLogs {
         }
     }
 
-    private int successful_calls = 0;
-    private int unsuccessful_calls = 0;
+    private static int successful_calls = 0;
+    private static int unsuccessful_calls = 0;
 
     // This is our transfer listener for when we upload the file
-    protected TransferListener getTransferListener(final int TOTAL_LOGS_TO_UPLOAD, final List<RecordedLog> list_of_logs, final File file, final SimpleAmazonLogCallback callback) {
+    protected static TransferListener getTransferListener(final int TOTAL_LOGS_TO_UPLOAD, final List<RecordedLog> list_of_logs, final File file, final SimpleAmazonLogCallback callback) {
         return new TransferListener() {
             @Override
             public void onStateChanged(int id, TransferState state) {
@@ -258,8 +256,7 @@ public class SimpleAmazonLogs {
                     }
                     else {
                         // There was at least one failed call, we can return failure
-                        Log.d("STATE",state.toString());
-                        callback.onFailure("At least one file failed to upload or was canceled");
+                        callback.onFailure(new Exception("At least one file failed to upload or was canceled"), successful_calls, unsuccessful_calls);
                     }
                 }
             }
@@ -276,7 +273,7 @@ public class SimpleAmazonLogs {
                 ex.printStackTrace();
                 unsuccessful_calls = unsuccessful_calls + 1;
                 if(successful_calls + unsuccessful_calls == TOTAL_LOGS_TO_UPLOAD) {
-                    callback.onFailure("At least one file failed to upload or was canceled");
+                    callback.onFailure(ex, successful_calls, unsuccessful_calls);
                 }
             }
         };

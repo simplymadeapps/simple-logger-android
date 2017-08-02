@@ -6,5 +6,5 @@ package com.simplymadeapps.simple_logger_android;
 
 public interface SimpleAmazonLogCallback {
     void onSuccess();
-    void onFailure(String reason);
+    void onFailure(Exception exception, int successful_uploads, int unsuccessful_uploads);
 }

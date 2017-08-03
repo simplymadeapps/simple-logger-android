@@ -52,6 +52,7 @@ dependencies {
     provided 'fr.xebia.android.freezer:freezer-annotations:2.0.6'
     apt 'fr.xebia.android.freezer:freezer-compiler:2.0.6'
 
+    testCompile 'commons-logging:commons-logging:1.1.1'
     testCompile 'junit:junit:4.12'
     testCompile 'org.powermock:powermock-api-mockito:1.6.6'
     testCompile 'org.powermock:powermock-module-junit4:1.6.6'

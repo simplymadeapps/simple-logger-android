@@ -1,5 +1,7 @@
 # simple-logger-android
 A simple library for Android that stores logs and uploads them as text files to Amazon S3.
+# Purpose
+The purpose of this project is to get logs from a specific user's device that can help when debugging.  If a user has a very specific issue and you are unable to reproduce it, just add some logging statements to get more information.  You can have them manually send the recorded logs or you can set it up to automatically upload to Amazon S3.
 # Getting Started
 // To do
 

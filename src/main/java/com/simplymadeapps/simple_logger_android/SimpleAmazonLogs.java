@@ -182,13 +182,17 @@ public class SimpleAmazonLogs {
         return list_of_lists;
     }
 
+    protected static boolean verifyAmazonCredentialsHaveBeenAdded() {
+        return access_token.isEmpty() || secret_token.isEmpty() || bucket.isEmpty() || region == null;
+    }
+
     /**
      * @param directory the directory you wish to upload to on Amazon S3 - for example, 'app-logs/user-200/'
      * @param callback the callback for upload completion
      */
     public static void uploadLogsToAmazon(String directory, final SimpleAmazonLogCallback callback) {
         // Make sure they have setup credentials
-        if(access_token.isEmpty() || secret_token.isEmpty() || bucket.isEmpty() || region == null) {
+        if(verifyAmazonCredentialsHaveBeenAdded()) {
             callback.onFailure(new Exception("You must call setAmazonCredentials() before uploading to Amazon"), 0, 0);
         }
         else {
@@ -212,11 +216,7 @@ public class SimpleAmazonLogs {
 
                 // Upload to amazon
                 TransferUtility transferUtility = new TransferUtility(s3, context);
-                TransferObserver observer = transferUtility.upload(
-                        bucket,     /* The bucket to upload to */
-                        directory+filename+".txt",    /* The key for the uploaded object */
-                        file        /* The file where the data to upload exists */
-                );
+                TransferObserver observer = TransferHelper.getTransferObserver(transferUtility, directory, bucket, filename, file);
 
                 // Monitor the upload so we can callback when completed
                 observer.setTransferListener(getTransferListener(TOTAL_LOGS_TO_UPLOAD, list_of_logs, file, callback));
@@ -224,7 +224,7 @@ public class SimpleAmazonLogs {
 
             // There was nothing to upload - let's just return success
             if(TOTAL_LOGS_TO_UPLOAD == 0) {
-                callback.onSuccess();
+                callback.onSuccess(0);
             }
         }
     }
@@ -262,7 +262,7 @@ public class SimpleAmazonLogs {
                 if(successful_calls + unsuccessful_calls == TOTAL_LOGS_TO_UPLOAD) {
                     if(unsuccessful_calls == 0) {
                         // All calls were success, we can return success
-                        callback.onSuccess();
+                        callback.onSuccess(successful_calls);
                     }
                     else {
                         // There was at least one failed call, we can return failure

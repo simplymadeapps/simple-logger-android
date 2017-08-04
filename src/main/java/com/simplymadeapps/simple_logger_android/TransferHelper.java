@@ -10,6 +10,11 @@ import java.io.File;
  */
 
 public class TransferHelper {
+
+    protected TransferHelper() {
+        // Needed for tests
+    }
+
     protected static TransferObserver getTransferObserver(TransferUtility transferUtility, String directory, String bucket, String filename, File file) {
         TransferObserver observer = transferUtility.upload(
                 bucket,     /* The bucket to upload to */

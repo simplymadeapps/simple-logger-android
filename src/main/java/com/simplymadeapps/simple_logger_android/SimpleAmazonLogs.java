@@ -229,8 +229,8 @@ public class SimpleAmazonLogs {
         }
     }
 
-    private static int successful_calls = 0;
-    private static int unsuccessful_calls = 0;
+    protected static int successful_calls = 0;
+    protected static int unsuccessful_calls = 0;
 
     // This is our transfer listener for when we upload the file
     protected static TransferListener getTransferListener(final int TOTAL_LOGS_TO_UPLOAD, final List<RecordedLog> list_of_logs, final File file, final SimpleAmazonLogCallback callback) {

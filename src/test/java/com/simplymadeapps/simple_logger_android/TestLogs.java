@@ -8,6 +8,7 @@ import android.preference.PreferenceManager;
 
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
 import com.amazonaws.regions.Regions;
 
@@ -255,5 +256,136 @@ public class TestLogs {
         SimpleAmazonLogs.uploadLogsToAmazon("directory", null);
 
         verify(observer, times(1)).setTransferListener(any(TransferListener.class));
+    }
+
+    @Test
+    public void test_listenerOnProgress() {
+        SimpleAmazonLogs.getTransferListener(0, null, null, null).onProgressChanged(0,0,0); // Do nothing as this is an empty method
+    }
+
+    @Test
+    public void test_listenerOnError() {
+        final Exception ex = mock(Exception.class);
+        doNothing().when(ex).printStackTrace();
+
+        File file = mock(File.class);
+        doReturn(true).when(file).delete();
+
+        SimpleAmazonLogCallback callback = new SimpleAmazonLogCallback() {
+            @Override
+            public void onSuccess(int total_uploaded) {
+
+            }
+
+            @Override
+            public void onFailure(Exception exception, int successful_uploads, int unsuccessful_uploads) {
+                Assert.assertEquals(ex, exception);
+                Assert.assertEquals(1, successful_uploads);
+                Assert.assertEquals(1, unsuccessful_uploads);
+            }
+        };
+
+        SimpleAmazonLogs.unsuccessful_calls = 0;
+        SimpleAmazonLogs.successful_calls = 0;
+
+        SimpleAmazonLogs.getTransferListener(3, null, file, callback).onError(0, ex);
+
+        Assert.assertEquals(SimpleAmazonLogs.unsuccessful_calls, 1);
+        Assert.assertEquals(SimpleAmazonLogs.successful_calls, 0);
+
+        SimpleAmazonLogs.unsuccessful_calls = 0;
+        SimpleAmazonLogs.successful_calls = 1;
+
+        SimpleAmazonLogs.getTransferListener(2, null, file, callback).onError(0, ex);
+
+        verify(file, times(2)).delete();
+        verify(ex, times(2)).printStackTrace();
+
+        SystemClock.sleep(1000);
+    }
+
+    @Test
+    public void test_listenerOnStateChangeCompleted() {
+        TransferState ts = TransferState.COMPLETED;
+
+        File file = mock(File.class);
+        doReturn(true).when(file).delete();
+
+        SimpleAmazonLogCallback callback = new SimpleAmazonLogCallback() {
+            @Override
+            public void onSuccess(int total_uploaded) {
+                Assert.assertEquals(total_uploaded, 2);
+            }
+
+            @Override
+            public void onFailure(Exception exception, int successful_uploads, int unsuccessful_uploads) {
+
+            }
+        };
+
+        List<RecordedLog> list_of_logs1 = new ArrayList<>();
+        list_of_logs1.add(new RecordedLog("Test Input Log 1", Calendar.getInstance().getTime()));
+
+        List<RecordedLog> list_of_logs2 = new ArrayList<>();
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_MONTH, -3);
+        list_of_logs2.add(new RecordedLog("Test Input Log 2", calendar.getTime()));
+
+        SimpleAmazonLogs.unsuccessful_calls = 0;
+        SimpleAmazonLogs.successful_calls = 0;
+
+        SimpleAmazonLogs.getTransferListener(2, list_of_logs1, file, callback).onStateChanged(0, ts);
+
+        SimpleAmazonLogs.unsuccessful_calls = 0;
+        SimpleAmazonLogs.successful_calls = 1;
+
+        SimpleAmazonLogs.getTransferListener(2, list_of_logs2, file, callback).onStateChanged(0, ts);
+
+        SimpleAmazonLogs.unsuccessful_calls = 0;
+        SimpleAmazonLogs.successful_calls = 2;
+
+        verify(file, times(2)).delete();
+
+        SystemClock.sleep(1000);
+    }
+
+    @Test
+    public void test_listenerOnStateChangeCanceledFailed() {
+        TransferState ts1 = TransferState.CANCELED;
+        TransferState ts2 = TransferState.FAILED;
+
+        File file = mock(File.class);
+        doReturn(true).when(file).delete();
+
+        SimpleAmazonLogCallback callback = new SimpleAmazonLogCallback() {
+            @Override
+            public void onSuccess(int total_uploaded) {
+
+            }
+
+            @Override
+            public void onFailure(Exception exception, int successful_uploads, int unsuccessful_uploads) {
+                Assert.assertEquals("At least one file failed to upload or was canceled", exception.getMessage());
+                Assert.assertEquals(unsuccessful_uploads, 2);
+                Assert.assertEquals(successful_uploads, 0);
+            }
+        };
+
+        SimpleAmazonLogs.unsuccessful_calls = 0;
+        SimpleAmazonLogs.successful_calls = 0;
+
+        SimpleAmazonLogs.getTransferListener(2, null, file, callback).onStateChanged(0, ts1);
+
+        SimpleAmazonLogs.unsuccessful_calls = 1;
+        SimpleAmazonLogs.successful_calls = 0;
+
+        SimpleAmazonLogs.getTransferListener(2, null, file, callback).onStateChanged(0, ts2);
+
+        SimpleAmazonLogs.unsuccessful_calls = 2;
+        SimpleAmazonLogs.successful_calls = 0;
+
+        verify(file, times(2)).delete();
+
+        SystemClock.sleep(1000);
     }
 }

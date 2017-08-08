@@ -57,3 +57,7 @@ dependencies {
     testCompile 'org.powermock:powermock-api-mockito:1.6.6'
     testCompile 'org.powermock:powermock-module-junit4:1.6.6'
 }
+
+junitJacoco {
+    excludes = ['com/simplymadeapps/simple_logger_android/RecordedLog**', 'fr/xebia/android/freezer/**' ] // type String List
+}

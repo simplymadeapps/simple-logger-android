@@ -68,5 +68,5 @@ dependencies {
 }
 
 junitJacoco {
-    excludes = ['com/simplymadeapps/simple_logger_android/RecordedLog**', 'fr/xebia/android/freezer/**' ] // type String List
+    excludes = ['com/simplymadeapps/simple_logger_android/RecordedLog**', 'fr/xebia/android/freezer/**' ]
 }

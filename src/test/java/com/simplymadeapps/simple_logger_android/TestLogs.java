@@ -54,7 +54,7 @@ public class TestLogs {
         SimpleAmazonLogs.daysToKeepInStorage = 7;
         SimpleAmazonLogs.rlem = rlem;
         SimpleAmazonLogs.editor = editor;
-        preferences = preferences;
+        SimpleAmazonLogs.preferences = preferences;
         RecordedLogQueryBuilder rlqb = mock(RecordedLogQueryBuilder.class);
         QueryBuilder.DateSelector ds = mock(QueryBuilder.DateSelector.class);
         doReturn(rlqb).when(rlem).select();
@@ -84,9 +84,12 @@ public class TestLogs {
 
         Assert.assertNotNull(SimpleAmazonLogs.instance);
         Assert.assertNotNull(SimpleAmazonLogs.rlem);
-        Assert.assertNotNull(preferences);
+        Assert.assertNotNull(SimpleAmazonLogs.preferences);
         Assert.assertNotNull(SimpleAmazonLogs.editor);
         Assert.assertEquals(SimpleAmazonLogs.daysToKeepInStorage, 7);
+
+        // Test init when it is not null
+        SimpleAmazonLogs.init(application);
     }
 
     @Test

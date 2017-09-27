@@ -3,7 +3,10 @@ A simple library for Android that stores logs and uploads them as text files to 
 # Purpose
 The purpose of this project is to get logs from a specific user's device that can help when debugging.  If a user has a very specific issue and you are unable to reproduce it, just add some logging statements to get more information.  You can have them manually send the recorded logs or you can set it up to automatically upload to Amazon S3.
 # Getting Started
-// To do
+Add dependency to build.gradle:
+```
+compile 'com.github.simplymadeapps:simple-logger-android:89c45cf359' // Use the git commit hash to specify the latest version
+```
 
 Add permissions to AndroidManifest.xml:
 ```
@@ -60,3 +63,5 @@ Example output:
 2017-07-31 11:33:14 CDT - This is my second recorded log
 2017-07-31 11:33:16 CDT - This is my third recorded log
 ```
+# iOS Library
+[You can find the iOS companion library here.](https://github.com/simplymadeapps/simple-logger)

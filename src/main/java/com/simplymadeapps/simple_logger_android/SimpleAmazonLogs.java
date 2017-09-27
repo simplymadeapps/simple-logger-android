@@ -69,7 +69,7 @@ public class SimpleAmazonLogs {
     /**
      * @param log takes a string and stores it as a log.  The time stamp will be added automatically.
      */
-    public static void addLog(String log) {
+    public synchronized static void addLog(String log) {
         rlem.add(new RecordedLog(log, Calendar.getInstance().getTime()));
         clearOldLogs();  // Because adding a log is called frequently, we will use it to check for week old logs and delete them
     }

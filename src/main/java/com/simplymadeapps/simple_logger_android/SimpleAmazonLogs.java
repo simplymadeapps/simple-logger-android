@@ -44,6 +44,7 @@ public class SimpleAmazonLogs {
     protected static String secret_token = "";
     protected static String bucket = "";
     protected static Regions region = null;
+    protected static long last_clear_old_logs_checked = 0;
 
 
     /**
@@ -71,7 +72,17 @@ public class SimpleAmazonLogs {
      */
     public synchronized static void addLog(String log) {
         rlem.add(new RecordedLog(log, Calendar.getInstance().getTime()));
-        clearOldLogs();  // Because adding a log is called frequently, we will use it to check for week old logs and delete them
+        if(haveNotCheckedForOldLogsInLast24Hrs()) { // Only check to clear old logs if we haven't in the last 24 hrs
+            clearOldLogs();  // Because adding a log is called frequently, we will use it to check for week old logs and delete them
+        }
+    }
+
+    /**
+     * @return returns true if we have already checked for old logs today, false if not
+     */
+    final static long HRS_24_IN_MS = 86400000l;
+    protected static boolean haveNotCheckedForOldLogsInLast24Hrs() {
+        return last_clear_old_logs_checked < System.currentTimeMillis()-HRS_24_IN_MS;
     }
 
     /**
@@ -126,6 +137,7 @@ public class SimpleAmazonLogs {
     protected static void clearOldLogs() {
         List<RecordedLog> week_old_logs = rlem.select().recordDate().before(getPreviousDate(daysToKeepInStorage-1)).asList();
         rlem.delete(week_old_logs);
+        last_clear_old_logs_checked = System.currentTimeMillis();
     }
 
     // Will return a text file with all of the logs.  It will return null if there was an error creating the file

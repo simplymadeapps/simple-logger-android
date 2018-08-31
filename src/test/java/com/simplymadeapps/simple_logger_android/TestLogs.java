@@ -93,10 +93,23 @@ public class TestLogs {
     }
 
     @Test
-    public void test_addLog() {
+    public void test_addLog_withClear() {
+        SimpleAmazonLogs.last_clear_old_logs_checked = 0;
+        Assert.assertEquals(SimpleAmazonLogs.last_clear_old_logs_checked, 0);
         SimpleAmazonLogs.addLog("Test");
         verify(SimpleAmazonLogs.rlem, times(1)).add(any(RecordedLog.class));
         verify(SimpleAmazonLogs.rlem, times(1)).delete(any(List.class));
+        Assert.assertNotSame(SimpleAmazonLogs.last_clear_old_logs_checked, 0);
+    }
+
+    @Test
+    public void test_addLog_withoutClear() {
+        SimpleAmazonLogs.last_clear_old_logs_checked = Long.MAX_VALUE;
+        Assert.assertEquals(SimpleAmazonLogs.last_clear_old_logs_checked, Long.MAX_VALUE);
+        SimpleAmazonLogs.addLog("Test");
+        verify(SimpleAmazonLogs.rlem, times(1)).add(any(RecordedLog.class));
+        verify(SimpleAmazonLogs.rlem, times(0)).delete(any(List.class));
+        Assert.assertEquals(SimpleAmazonLogs.last_clear_old_logs_checked, Long.MAX_VALUE);
     }
 
     @Test

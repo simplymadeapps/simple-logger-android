@@ -1,33 +1,64 @@
-buildscript {
-    repositories {
-        mavenCentral()
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
-        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
-        classpath 'com.vanniktech:gradle-android-junit-jacoco-plugin:0.6.0'
-        classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
-    }
-}
-
-allprojects {
-    repositories {
-        mavenCentral()
-        jcenter()
-    }
-}
-
-apply plugin: 'com.vanniktech.android.junit.jacoco'
 apply plugin: 'com.android.library'
 
+apply plugin: 'jacoco'
+
+def coverageSourceDirs = [
+        'src/main/java',
+        'src/debug/java'
+]
+
+task jacocoTestReport(type : JacocoReport, dependsOn : 'testDebugUnitTest') {
+    group       = 'Reporting'
+    description = 'Generate JaCoCo coverage reports'
+
+    reports {
+        xml.enabled  = true
+        html.enabled = true
+    }
+
+    classDirectories = fileTree(
+            dir      : 'build/intermediates/classes/debug',
+            excludes : [
+                    '**/R.class',
+                    '**/R$*.class',
+                    '**/*$ViewInjector*.*',
+                    '**/*$ViewBinder*.*',
+                    '**/BuildConfig.*',
+                    '**/Manifest*.*',
+                    '**/*RealmProxy.*',
+                    '**/*ColumnInfo.*',
+                    '**/*RealmModule*.*',
+                    '**/AutoValue_*.*',
+                    '**/Dagger*.*',
+                    '**/*Module_Provide*Factory.*',
+                    '**/*_Factory.*',
+                    '**/*_MembersInjector.*',
+                    '**/*_LifecycleAdapter.*'
+            ]
+    )
+
+    sourceDirectories = files(coverageSourceDirs)
+    executionData     = fileTree(
+            dir     : "$buildDir",
+            include : [ 'jacoco/testDebugUnitTest.exec', 'outputs/code-coverage/connected/*coverage.ec' ]
+    )
+
+    doFirst {
+        files('build/intermediates/classes/debug').getFiles().each { file ->
+            if (file.name.contains('$$')) {
+                file.renameTo(file.path.replace('$$', '$'))
+            }
+        }
+    }
+}
+
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.2"
+    compileSdkVersion 27
+    buildToolsVersion "27.0.3"
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 23
+        targetSdkVersion 26
         versionCode 2
         versionName "1.1"
 
@@ -46,30 +77,16 @@ android {
     }
 }
 
-repositories {
-    mavenCentral()
-    jcenter()
-}
-
-apply plugin: 'com.neenbedankt.android-apt'
-apply plugin: 'com.github.dcendents.android-maven'
-group='com.github.simplymadeapps'
-
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.amazonaws:aws-android-sdk-core:2.3.9'
-    compile 'com.amazonaws:aws-android-sdk-s3:2.3.9'
+    implementation 'com.amazonaws:aws-android-sdk-core:2.3.9'
+    implementation 'com.amazonaws:aws-android-sdk-s3:2.3.9'
 
-    compile 'fr.xebia.android.freezer:freezer:2.0.6'
-    provided 'fr.xebia.android.freezer:freezer-annotations:2.0.6'
-    apt 'fr.xebia.android.freezer:freezer-compiler:2.0.6'
+    def room_version = "2.0.0"
 
-    testCompile 'commons-logging:commons-logging:1.1.1'
-    testCompile 'junit:junit:4.12'
-    testCompile 'org.powermock:powermock-api-mockito:1.6.6'
-    testCompile 'org.powermock:powermock-module-junit4:1.6.6'
-}
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
 
-junitJacoco {
-    excludes = ['com/simplymadeapps/simple_logger_android/RecordedLog**', 'fr/xebia/android/freezer/**' ]
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.powermock:powermock-api-mockito:1.6.6'
+    testImplementation 'org.powermock:powermock-module-junit4:1.6.6'
 }

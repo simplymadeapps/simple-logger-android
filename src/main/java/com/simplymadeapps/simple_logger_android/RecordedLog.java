@@ -1,21 +1,55 @@
 package com.simplymadeapps.simple_logger_android;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import fr.xebia.android.freezer.annotations.Model;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
 
-@Model
+@Entity(tableName = "recorded_log")
 public class RecordedLog {
 
-    public String log;
-    public Date recordDate;
+    @PrimaryKey(autoGenerate = true)
+    private int id;
 
-    protected RecordedLog() {
-        // needed for library
+    @ColumnInfo(name = "log")
+    private String log;
+
+    @ColumnInfo(name = "date")
+    private long date;
+
+    public int getId() {
+        return id;
     }
 
-    protected RecordedLog(String log, Date date) {
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getLog() {
+        return log;
+    }
+
+    public void setLog(String log) {
         this.log = log;
-        this.recordDate = date;
+    }
+
+    public long getDate() {
+        return date;
+    }
+
+    public void setDate(long date) {
+        this.date = date;
+    }
+
+    public String getReadableDate() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+        return sdf.format(new Date(date));
+    }
+
+    public String getTextFileTitle() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        return sdf.format(new Date(date));
     }
 }

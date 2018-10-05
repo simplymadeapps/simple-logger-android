@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
@@ -17,20 +18,17 @@ import com.amazonaws.services.s3.AmazonS3Client;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 
-import fr.xebia.android.freezer.Freezer;
+import androidx.room.Room;
 
 public class SimpleAmazonLogs {
 
     protected static SimpleAmazonLogs instance;
 
-    protected static RecordedLogEntityManager rlem;
     protected static Context context;
 
     protected static int daysToKeepInStorage;
@@ -45,7 +43,9 @@ public class SimpleAmazonLogs {
     protected static String bucket = "";
     protected static Regions region = null;
     protected static long last_clear_old_logs_checked = 0;
+    final static long HRS_24_IN_MS = 86400000l;
 
+    protected static RecordedLogDatabase database;
 
     /**
      * @param application the application object used for storing records
@@ -59,9 +59,8 @@ public class SimpleAmazonLogs {
 
     // Constructor
     protected SimpleAmazonLogs(Application application) {
-        Freezer.onCreate(application);
+        this.database = Room.databaseBuilder(application, RecordedLogDatabase.class, "recorded_log_database").build();
         this.context = application.getApplicationContext();
-        this.rlem = new RecordedLogEntityManager();
         this.preferences = PreferenceManager.getDefaultSharedPreferences(context);
         this.editor = preferences.edit();
         this.daysToKeepInStorage = preferences.getInt(KEEP_IN_STORAGE_KEY, 7);
@@ -70,17 +69,26 @@ public class SimpleAmazonLogs {
     /**
      * @param log takes a string and stores it as a log.  The time stamp will be added automatically.
      */
-    public synchronized static void addLog(String log) {
-        rlem.add(new RecordedLog(log, Calendar.getInstance().getTime()));
-        if(haveNotCheckedForOldLogsInLast24Hrs()) { // Only check to clear old logs if we haven't in the last 24 hrs
-            clearOldLogs();  // Because adding a log is called frequently, we will use it to check for week old logs and delete them
-        }
+    public static void addLog(final String log) {
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                if(haveNotCheckedForOldLogsInLast24Hrs()) { // Only check to clear old logs if we haven't in the last 24 hrs
+                    clearOldLogs();  // Because adding a log is called frequently, we will use it to check for week old logs and delete them
+                }
+
+                RecordedLog recordedLog = new RecordedLog();
+                recordedLog.setLog(log);
+                recordedLog.setDate(System.currentTimeMillis());
+                database.recordedLogDao().insert(recordedLog);
+            }
+        };
+        thread.start();
     }
 
     /**
      * @return returns true if we have already checked for old logs today, false if not
      */
-    final static long HRS_24_IN_MS = 86400000l;
     protected static boolean haveNotCheckedForOldLogsInLast24Hrs() {
         return last_clear_old_logs_checked < System.currentTimeMillis()-HRS_24_IN_MS;
     }
@@ -88,8 +96,14 @@ public class SimpleAmazonLogs {
     /**
      * @return returns all currently stored logs
      */
-    public static List<RecordedLog> getAllLogs() {
-        return rlem.select().asList();
+    public static void getAllLogs(final RecordedLogCallbacks callback) {
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                callback.onLogsReady(database.recordedLogDao().getAll());
+            }
+        };
+        thread.start();
     }
 
     /**
@@ -99,14 +113,19 @@ public class SimpleAmazonLogs {
         editor.putInt(KEEP_IN_STORAGE_KEY, days);
         editor.commit();
         daysToKeepInStorage = days;
-        clearOldLogs();
     }
 
     /**
      * Deletes all stored records
      */
     public static void deleteAllLogs() {
-        rlem.deleteAll();
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                database.recordedLogDao().deleteAll();
+            }
+        };
+        thread.start();
     }
 
     /**
@@ -122,21 +141,11 @@ public class SimpleAmazonLogs {
         region = amazon_region;
     }
 
-    // Gets a date object that we will use to compare dates.
-    protected static Date getPreviousDate(int daysAgo) {
-        // Sets up a calendar to the current time
-        Calendar today = Calendar.getInstance();
-        Calendar calendar = new GregorianCalendar(today.get(Calendar.YEAR), today.get(Calendar.MONTH), today.get(Calendar.DAY_OF_MONTH));
-
-        // Subtracts the amount of days we want to go back
-        calendar.add(Calendar.DAY_OF_MONTH, -daysAgo);
-        return calendar.getTime();
-    }
-
     // Clear logs from storage that are older than the threshold
     protected static void clearOldLogs() {
-        List<RecordedLog> week_old_logs = rlem.select().recordDate().before(getPreviousDate(daysToKeepInStorage-1)).asList();
-        rlem.delete(week_old_logs);
+        long decrement = daysToKeepInStorage*HRS_24_IN_MS;
+        // no need for it is own thread as this always gets called from the addLogs thread
+        database.recordedLogDao().deleteLogsOlderThanTime(System.currentTimeMillis()-decrement);
         last_clear_old_logs_checked = System.currentTimeMillis();
     }
 
@@ -145,9 +154,8 @@ public class SimpleAmazonLogs {
         try {
             File file = File.createTempFile(System.currentTimeMillis()+"", ".txt");
             FileOutputStream stream = new FileOutputStream(file);
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
             for(RecordedLog log : logs) {
-                String line = sdf.format(log.recordDate) + " - " + log.log + "\n";
+                String line = log.getReadableDate() + " - " + log.getLog() + "\n";
                 stream.write(line.getBytes());
             }
             stream.close();
@@ -161,25 +169,29 @@ public class SimpleAmazonLogs {
 
     // Get the logs from a specific day
     // The range will end up being as follows:
-    // 06/25 11:59:99 < date < 06/26 12:00:00
+    // 06/25 12:00:00 <= date < 06/26 12:00:00
     // So it should give all logs perfectly for that date
     protected static List<RecordedLog> getLogsFromSpecificDay(int daysAgo) {
-        Date min = getLowerBoundDate(daysAgo);
-        Date max = getUpperBoundDate(daysAgo);
-        return rlem.select().recordDate().between(min, max).asList();
-    }
+        // get the date/time for right now
+        Calendar date = new GregorianCalendar();
 
-    // Get the lower bound of the date
-    protected static Date getLowerBoundDate(int daysAgo) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(getPreviousDate(daysAgo));
-        calendar.add(Calendar.MILLISECOND, -1);
-        return calendar.getTime();
-    }
+        // reset hour, minutes, seconds and millis so it is midnight
+        date.set(Calendar.HOUR_OF_DAY, 0);
+        date.set(Calendar.MINUTE, 0);
+        date.set(Calendar.SECOND, 0);
+        date.set(Calendar.MILLISECOND, 0);
 
-    // Get the lower bound of the date
-    protected static Date getUpperBoundDate(int daysAgo) {
-        return getPreviousDate(daysAgo-1);
+        // This will set the date to daysAgo at midnight
+        date.add(Calendar.DAY_OF_MONTH, (daysAgo*-1)+1);
+        long upperBound = date.getTimeInMillis();
+        Log.d("UPPER BOUND",upperBound+"");
+
+        // This will set the date to daysAgo+1 at midnight
+        date.add(Calendar.DAY_OF_MONTH, -1);
+        long lowerBound = date.getTimeInMillis();
+        Log.d("LOWER BOUND",lowerBound+"");
+
+        return database.recordedLogDao().getLogsWithinTimeRange(lowerBound, upperBound);
     }
 
     // Get list of list of logs to be uploaded - one list of logs per day
@@ -202,42 +214,47 @@ public class SimpleAmazonLogs {
      * @param directory the directory you wish to upload to on Amazon S3 - for example, 'app-logs/user-200/'
      * @param callback the callback for upload completion
      */
-    public static void uploadLogsToAmazon(String directory, final SimpleAmazonLogCallback callback) {
+    public static void uploadLogsToAmazon(final String directory, final SimpleAmazonLogCallback callback) {
         // Make sure they have setup credentials
         if(verifyAmazonCredentialsHaveBeenAdded()) {
             callback.onFailure(new Exception("You must call setAmazonCredentials() before uploading to Amazon"), 0, 0);
         }
         else {
-            // Create an S3 client
-            AmazonS3 s3 = new AmazonS3Client(new BasicAWSCredentials(access_token,secret_token));
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+                    // Create an S3 client
+                    AmazonS3 s3 = new AmazonS3Client(new BasicAWSCredentials(access_token,secret_token));
 
-            // Set the region of your S3 bucket
-            s3.setRegion(Region.getRegion(region));
+                    // Set the region of your S3 bucket
+                    s3.setRegion(Region.getRegion(region));
 
-            // We have to do an upload for each day of logs we have.  This could mean there is between 0 and 7 logs that need to be uploaded
-            List<List<RecordedLog>> list_of_list_of_logs = getListOfListOfLogsToUpload();
+                    // We have to do an upload for each day of logs we have.  This could mean there is between 0 and 7 logs that need to be uploaded
+                    List<List<RecordedLog>> list_of_list_of_logs = getListOfListOfLogsToUpload();
 
-            final int TOTAL_LOGS_TO_UPLOAD = list_of_list_of_logs.size();
-            successful_calls = 0;
-            unsuccessful_calls = 0;
+                    final int TOTAL_LOGS_TO_UPLOAD = list_of_list_of_logs.size();
+                    successful_calls = 0;
+                    unsuccessful_calls = 0;
 
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-            for(List<RecordedLog> list_of_logs : list_of_list_of_logs) {
-                final File file = createLogTextFile(list_of_logs); // Create a text file from the logs
-                String filename = sdf.format(list_of_logs.get(0).recordDate); // Generate a name for the file
+                    for(List<RecordedLog> list_of_logs : list_of_list_of_logs) {
+                        final File file = createLogTextFile(list_of_logs); // Create a text file from the logs
+                        String filename = list_of_logs.get(0).getTextFileTitle(); // Generate a name for the file
 
-                // Upload to amazon
-                TransferUtility transferUtility = new TransferUtility(s3, context);
-                TransferObserver observer = TransferHelper.getTransferObserver(transferUtility, directory, bucket, filename, file);
+                        // Upload to amazon
+                        TransferUtility transferUtility = new TransferUtility(s3, context);
+                        TransferObserver observer = TransferHelper.getTransferObserver(transferUtility, directory, bucket, filename, file);
 
-                // Monitor the upload so we can callback when completed
-                observer.setTransferListener(getTransferListener(TOTAL_LOGS_TO_UPLOAD, list_of_logs, file, callback));
-            }
+                        // Monitor the upload so we can callback when completed
+                        observer.setTransferListener(getTransferListener(TOTAL_LOGS_TO_UPLOAD, list_of_logs, file, callback));
+                    }
 
-            // There was nothing to upload - let's just return success
-            if(TOTAL_LOGS_TO_UPLOAD == 0) {
-                callback.onSuccess(0);
-            }
+                    // There was nothing to upload - let's just return success
+                    if(TOTAL_LOGS_TO_UPLOAD == 0) {
+                        callback.onSuccess(0);
+                    }
+                }
+            };
+            thread.start();
         }
     }
 
@@ -256,9 +273,13 @@ public class SimpleAmazonLogs {
                     // Iterate the number of uploads that have completed
                     successful_calls = successful_calls + 1;
 
+                    // This just gets me a dummy log for today's date
+                    RecordedLog recordedLog = new RecordedLog();
+                    recordedLog.setDate(System.currentTimeMillis());
+
                     // If the uploaded logs are from a previous day (not from today) we can clear those logs.
-                    if(list_of_logs.get(0).recordDate.before(getPreviousDate(0))) {
-                        rlem.delete(list_of_logs);
+                    if(!list_of_logs.get(0).getTextFileTitle().equalsIgnoreCase(recordedLog.getTextFileTitle())) {
+                        database.recordedLogDao().delete(list_of_logs);
                     }
                 }
 

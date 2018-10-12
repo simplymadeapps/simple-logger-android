@@ -8,6 +8,7 @@ jobs:
     steps:
       - checkout
       - run: sudo chmod +x ./gradlew
+      - run: export TERM=xterm && ./gradlew dependencies
       - run: export TERM=xterm && ./gradlew check
       - run: export TERM=xterm && ./gradlew jacocoTestReport
       - run: bash <(curl -s https://codecov.io/bash) -t $CODECOV_TOKEN

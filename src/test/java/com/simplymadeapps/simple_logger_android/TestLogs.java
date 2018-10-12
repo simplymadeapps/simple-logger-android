@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
 
+import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
@@ -23,69 +24,76 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
-import fr.xebia.android.freezer.QueryBuilder;
+import androidx.room.Room;
+import androidx.room.RoomDatabase;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
+import static org.powermock.api.mockito.PowerMockito.doNothing;
 import static org.powermock.api.mockito.PowerMockito.doReturn;
 import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.powermock.api.mockito.PowerMockito.when;
 
 @RunWith(PowerMockRunner.class)
-@PrepareForTest( { PreferenceManager.class, TransferHelper.class, TransferObserver.class })
+@PrepareForTest( { PreferenceManager.class, TransferHelper.class, TransferObserver.class, Room.class, AmazonWebServiceClient.class })
 public class TestLogs {
+
+    SharedPreferences preferences;
+    SharedPreferences.Editor editor;
+    RecordedLogDao dao;
 
     @Before
     public void setup() {
-        RecordedLogEntityManager rlem = mock(RecordedLogEntityManager.class);
-        SharedPreferences preferences = mock(SharedPreferences.class);
-        SharedPreferences.Editor editor = mock(SharedPreferences.Editor.class);
-        doReturn(editor).when(editor).putInt(SimpleAmazonLogs.KEEP_IN_STORAGE_KEY, 7);
-        doReturn(true).when(editor).commit();
+        RecordedLogDatabase database = mock(RecordedLogDatabase.class);
+        dao = mock(RecordedLogDao.class);
+        doReturn(dao).when(database).recordedLogDao();
+
+        preferences = mock(SharedPreferences.class);
+        editor = mock(SharedPreferences.Editor.class);
         SimpleAmazonLogs.daysToKeepInStorage = 7;
-        SimpleAmazonLogs.rlem = rlem;
+        SimpleAmazonLogs.database = database;
         SimpleAmazonLogs.editor = editor;
         SimpleAmazonLogs.preferences = preferences;
-        RecordedLogQueryBuilder rlqb = mock(RecordedLogQueryBuilder.class);
-        QueryBuilder.DateSelector ds = mock(QueryBuilder.DateSelector.class);
-        doReturn(rlqb).when(rlem).select();
-        doReturn(ds).when(rlqb).recordDate();
-        doReturn(rlqb).when(ds).before(any(Date.class));
-        doReturn(rlqb).when(ds).between(any(Date.class), any(Date.class));
-        List<RecordedLog> logs = new ArrayList<>();
-        logs.add(new RecordedLog("Test Input Log 1", Calendar.getInstance().getTime()));
-        logs.add(new RecordedLog("Test Input Log 2", Calendar.getInstance().getTime()));
-        doReturn(logs).when(rlqb).asList();
+    }
+
+    protected void waitForThread(final long ms) {
+        try {
+            Thread.sleep(ms); // Wait for thread
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
     public void test_init() {
         Application application = mock(Application.class);
 
-        SharedPreferences preferences = mock(SharedPreferences.class);
-        SharedPreferences.Editor editor = mock(SharedPreferences.Editor.class);
-
+        mockStatic(Room.class);
         mockStatic(PreferenceManager.class);
-        doReturn(preferences).when(PreferenceManager.class);
-        PreferenceManager.getDefaultSharedPreferences(any(Context.class));
+
+        doReturn(mock(Context.class)).when(application).getApplicationContext();
+        when(PreferenceManager.getDefaultSharedPreferences(any(Context.class))).thenReturn(preferences);
         doReturn(editor).when(preferences).edit();
         doReturn(7).when(preferences).getInt(SimpleAmazonLogs.KEEP_IN_STORAGE_KEY, 7);
+        RoomDatabase.Builder<RecordedLogDatabase> builder = mock(RoomDatabase.Builder.class);
+        when(Room.databaseBuilder(application, RecordedLogDatabase.class, "recorded_log_database")).thenReturn(builder);
+        RecordedLogDatabase database = mock(RecordedLogDatabase.class);
+        doReturn(database).when(builder).build();
 
         SimpleAmazonLogs.init(application);
 
         Assert.assertNotNull(SimpleAmazonLogs.instance);
-        Assert.assertNotNull(SimpleAmazonLogs.rlem);
-        Assert.assertNotNull(SimpleAmazonLogs.preferences);
-        Assert.assertNotNull(SimpleAmazonLogs.editor);
+        Assert.assertEquals(SimpleAmazonLogs.database, database);
+        Assert.assertEquals(SimpleAmazonLogs.preferences, preferences);
+        Assert.assertEquals(SimpleAmazonLogs.editor, editor);
         Assert.assertEquals(SimpleAmazonLogs.daysToKeepInStorage, 7);
 
         // Test init when it is not null
@@ -97,8 +105,9 @@ public class TestLogs {
         SimpleAmazonLogs.last_clear_old_logs_checked = 0;
         Assert.assertEquals(SimpleAmazonLogs.last_clear_old_logs_checked, 0);
         SimpleAmazonLogs.addLog("Test");
-        verify(SimpleAmazonLogs.rlem, times(1)).add(any(RecordedLog.class));
-        verify(SimpleAmazonLogs.rlem, times(1)).delete(any(List.class));
+        waitForThread(100);
+        verify(dao, times(1)).deleteLogsOlderThanTime(anyLong());
+        verify(dao, times(1)).insert(any(RecordedLog.class));
         Assert.assertNotSame(SimpleAmazonLogs.last_clear_old_logs_checked, 0);
     }
 
@@ -107,14 +116,19 @@ public class TestLogs {
         SimpleAmazonLogs.last_clear_old_logs_checked = Long.MAX_VALUE;
         Assert.assertEquals(SimpleAmazonLogs.last_clear_old_logs_checked, Long.MAX_VALUE);
         SimpleAmazonLogs.addLog("Test");
-        verify(SimpleAmazonLogs.rlem, times(1)).add(any(RecordedLog.class));
-        verify(SimpleAmazonLogs.rlem, times(0)).delete(any(List.class));
-        Assert.assertEquals(SimpleAmazonLogs.last_clear_old_logs_checked, Long.MAX_VALUE);
+        waitForThread(100);
+        verify(dao, times(0)).deleteLogsOlderThanTime(anyLong());
+        verify(dao, times(1)).insert(any(RecordedLog.class));
+        Assert.assertNotSame(SimpleAmazonLogs.last_clear_old_logs_checked, Long.MAX_VALUE);
     }
 
     @Test
     public void test_getAllLogs() {
-        Assert.assertEquals(SimpleAmazonLogs.getAllLogs().size(), 2);
+        RecordedLogCallbacks callback = mock(RecordedLogCallbacks.class);
+        SimpleAmazonLogs.getAllLogs(callback);
+        waitForThread(100);
+        verify(dao, times(1)).getAll();
+        verify(callback, times(1)).onLogsReady(any(List.class));
     }
 
     @Test
@@ -128,7 +142,8 @@ public class TestLogs {
     @Test
     public void test_deleteAllLogs() {
         SimpleAmazonLogs.deleteAllLogs();
-        verify(SimpleAmazonLogs.rlem, times(1)).deleteAll();
+        waitForThread(100);
+        verify(dao, times(1)).deleteAll();
     }
 
     @Test
@@ -141,13 +156,18 @@ public class TestLogs {
 
     @Test
     public void test_getLogsFromSpecificDay() {
-        Assert.assertEquals(SimpleAmazonLogs.getLogsFromSpecificDay(1).size(), 2);
+        Assert.assertEquals(SimpleAmazonLogs.getLogsFromSpecificDay(1).size(), 0);
+        waitForThread(100);
+        verify(dao, times(1)).getLogsWithinTimeRange(anyLong(), anyLong());
     }
 
     @Test
     public void test_createLogTextFile() throws FileNotFoundException {
         List<RecordedLog> logs = new ArrayList<>();
-        logs.add(new RecordedLog("Test Input Log", Calendar.getInstance().getTime()));
+        RecordedLog log1 = new RecordedLog();
+        log1.setLog("Test Input Log");
+        log1.setDate(0);
+        logs.add(log1);
         File file = SimpleAmazonLogs.createLogTextFile(logs);
         Assert.assertNotNull(file);
 
@@ -157,22 +177,27 @@ public class TestLogs {
         Assert.assertTrue(hasText);
 
         List<RecordedLog> logs2 = new ArrayList<>();
-        logs2.add(new RecordedLog(null, null));
+        logs2.add(null);
         File file2 = SimpleAmazonLogs.createLogTextFile(logs2);
         Assert.assertNull(file2);
     }
 
     @Test
     public void test_getListOfListOfLogsToUpload() {
+        List<RecordedLog> logs = new ArrayList<>();
+        logs.add(new RecordedLog());
+        doReturn(logs).when(dao).getLogsWithinTimeRange(anyLong(), anyLong());
         List<List<RecordedLog>> list_of_lists = SimpleAmazonLogs.getListOfListOfLogsToUpload();
+        waitForThread(100);
         Assert.assertEquals(list_of_lists.size(), 7);
-        Assert.assertEquals(list_of_lists.get(0).size(), 2);
-        Assert.assertEquals(list_of_lists.get(1).size(), 2);
-        Assert.assertEquals(list_of_lists.get(2).size(), 2);
-        Assert.assertEquals(list_of_lists.get(3).size(), 2);
-        Assert.assertEquals(list_of_lists.get(4).size(), 2);
-        Assert.assertEquals(list_of_lists.get(5).size(), 2);
-        Assert.assertEquals(list_of_lists.get(6).size(), 2);
+        Assert.assertEquals(list_of_lists.get(0).size(), 1);
+        Assert.assertEquals(list_of_lists.get(1).size(), 1);
+        Assert.assertEquals(list_of_lists.get(2).size(), 1);
+        Assert.assertEquals(list_of_lists.get(3).size(), 1);
+        Assert.assertEquals(list_of_lists.get(4).size(), 1);
+        Assert.assertEquals(list_of_lists.get(5).size(), 1);
+        Assert.assertEquals(list_of_lists.get(6).size(), 1);
+        verify(dao, times(7)).getLogsWithinTimeRange(anyLong(), anyLong());
     }
 
     @Test
@@ -246,6 +271,8 @@ public class TestLogs {
             }
         });
 
+        waitForThread(1000);
+
         SystemClock.sleep(1000);
     }
 
@@ -256,6 +283,10 @@ public class TestLogs {
         SimpleAmazonLogs.bucket = "3";
         SimpleAmazonLogs.region = Regions.US_EAST_1;
         SimpleAmazonLogs.daysToKeepInStorage = 1;
+
+        List<RecordedLog> logs = new ArrayList<>();
+        logs.add(new RecordedLog());
+        doReturn(logs).when(dao).getLogsWithinTimeRange(anyLong(), anyLong());
 
         Context context = mock(Context.class);
         doReturn(context).when(context).getApplicationContext();
@@ -270,6 +301,8 @@ public class TestLogs {
         TransferHelper.getTransferObserver(any(TransferUtility.class),eq("directory"),eq("3"),anyString(),any(File.class));
 
         SimpleAmazonLogs.uploadLogsToAmazon("directory", null);
+
+        waitForThread(1000);
 
         verify(observer, times(1)).setTransferListener(any(TransferListener.class));
     }
@@ -340,27 +373,32 @@ public class TestLogs {
         };
 
         List<RecordedLog> list_of_logs1 = new ArrayList<>();
-        list_of_logs1.add(new RecordedLog("Test Input Log 1", Calendar.getInstance().getTime()));
+        RecordedLog log1 = new RecordedLog();
+        log1.setDate(System.currentTimeMillis());
+        list_of_logs1.add(log1);
 
         List<RecordedLog> list_of_logs2 = new ArrayList<>();
-        Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.DAY_OF_MONTH, -3);
-        list_of_logs2.add(new RecordedLog("Test Input Log 2", calendar.getTime()));
+        RecordedLog log2 = new RecordedLog();
+        log2.setDate(System.currentTimeMillis()-SimpleAmazonLogs.HRS_24_IN_MS);
+        list_of_logs2.add(log2);
 
         SimpleAmazonLogs.unsuccessful_calls = 0;
         SimpleAmazonLogs.successful_calls = 0;
 
         SimpleAmazonLogs.getTransferListener(2, list_of_logs1, file, callback).onStateChanged(0, ts);
+        waitForThread(100);
 
         SimpleAmazonLogs.unsuccessful_calls = 0;
         SimpleAmazonLogs.successful_calls = 1;
 
         SimpleAmazonLogs.getTransferListener(2, list_of_logs2, file, callback).onStateChanged(0, ts);
+        waitForThread(100);
 
         SimpleAmazonLogs.unsuccessful_calls = 0;
         SimpleAmazonLogs.successful_calls = 2;
 
         verify(file, times(2)).delete();
+        verify(dao, times(1)).delete(any(List.class));
 
         SystemClock.sleep(1000);
     }

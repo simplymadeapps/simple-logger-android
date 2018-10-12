@@ -231,6 +231,7 @@ public class SimpleAmazonLogs {
 
                     // We have to do an upload for each day of logs we have.  This could mean there is between 0 and 7 logs that need to be uploaded
                     List<List<RecordedLog>> list_of_list_of_logs = getListOfListOfLogsToUpload();
+                    System.out.println(list_of_list_of_logs.size());
 
                     final int TOTAL_LOGS_TO_UPLOAD = list_of_list_of_logs.size();
                     successful_calls = 0;
@@ -239,6 +240,7 @@ public class SimpleAmazonLogs {
                     for(List<RecordedLog> list_of_logs : list_of_list_of_logs) {
                         final File file = createLogTextFile(list_of_logs); // Create a text file from the logs
                         String filename = list_of_logs.get(0).getTextFileTitle(); // Generate a name for the file
+                        System.out.println(filename);
 
                         // Upload to amazon
                         TransferUtility transferUtility = new TransferUtility(s3, context);
@@ -256,6 +258,16 @@ public class SimpleAmazonLogs {
             };
             thread.start();
         }
+    }
+
+    public static void deleteListOfLogs(final List<RecordedLog> list_of_logs) {
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                database.recordedLogDao().delete(list_of_logs);
+            }
+        };
+        thread.start();
     }
 
     protected static int successful_calls = 0;
@@ -279,7 +291,7 @@ public class SimpleAmazonLogs {
 
                     // If the uploaded logs are from a previous day (not from today) we can clear those logs.
                     if(!list_of_logs.get(0).getTextFileTitle().equalsIgnoreCase(recordedLog.getTextFileTitle())) {
-                        database.recordedLogDao().delete(list_of_logs);
+                        deleteListOfLogs(list_of_logs);
                     }
                 }
 

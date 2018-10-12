@@ -19,6 +19,8 @@ task jacocoTestReport(type : JacocoReport, dependsOn : 'testDebugUnitTest') {
     classDirectories = fileTree(
             dir      : 'build/intermediates/classes/debug',
             excludes : [
+                    'com/simplymadeapps/simple_logger_android/RecordedLogDatabase**',
+                    'com/simplymadeapps/simple_logger_android/RecordedLogDao**',
                     '**/R.class',
                     '**/R$*.class',
                     '**/*$ViewInjector*.*',
@@ -80,6 +82,7 @@ android {
 dependencies {
     implementation 'com.amazonaws:aws-android-sdk-core:2.3.9'
     implementation 'com.amazonaws:aws-android-sdk-s3:2.3.9'
+    testImplementation 'commons-logging:commons-logging:1.1.1'
 
     def room_version = "2.0.0"
 

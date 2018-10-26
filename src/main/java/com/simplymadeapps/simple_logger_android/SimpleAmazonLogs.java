@@ -1,6 +1,7 @@
 package com.simplymadeapps.simple_logger_android;
 
 import android.app.Application;
+import android.arch.persistence.room.Room;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
@@ -22,8 +23,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
-
-import androidx.room.Room;
 
 public class SimpleAmazonLogs {
 

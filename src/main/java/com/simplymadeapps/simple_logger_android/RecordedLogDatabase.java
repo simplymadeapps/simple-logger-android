@@ -1,7 +1,8 @@
 package com.simplymadeapps.simple_logger_android;
 
-import androidx.room.Database;
-import androidx.room.RoomDatabase;
+
+import android.arch.persistence.room.Database;
+import android.arch.persistence.room.RoomDatabase;
 
 @Database(entities = {RecordedLog.class}, version = 1)
 public abstract class RecordedLogDatabase extends RoomDatabase {

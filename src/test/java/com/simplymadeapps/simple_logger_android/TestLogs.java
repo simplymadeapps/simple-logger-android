@@ -1,6 +1,8 @@
 package com.simplymadeapps.simple_logger_android;
 
 import android.app.Application;
+import android.arch.persistence.room.Room;
+import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.SystemClock;
@@ -26,9 +28,6 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-
-import androidx.room.Room;
-import androidx.room.RoomDatabase;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;

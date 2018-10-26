@@ -101,8 +101,8 @@ android {
 }
 
 dependencies {
-    implementation 'com.amazonaws:aws-android-sdk-core:2.6.16'
-    implementation 'com.amazonaws:aws-android-sdk-s3:2.6.16'
+    implementation 'com.amazonaws:aws-android-sdk-core:2.6.22'
+    implementation 'com.amazonaws:aws-android-sdk-s3:2.6.22'
     testImplementation 'commons-logging:commons-logging:1.1.1'
 
     implementation "android.arch.persistence.room:runtime:1.1.1"

@@ -49,6 +49,10 @@ public class TestLogs {
     SharedPreferences.Editor editor;
     RecordedLogDao dao;
 
+    // These values were chosen specifically as they are the lowest values possible while the tests still pass
+    static int sleep_time_short = 50;
+    static int sleep_time_long = 750;
+
     @Before
     public void setup() {
         RecordedLogDatabase database = mock(RecordedLogDatabase.class);
@@ -104,7 +108,7 @@ public class TestLogs {
         SimpleAmazonLogs.last_clear_old_logs_checked = 0;
         Assert.assertEquals(SimpleAmazonLogs.last_clear_old_logs_checked, 0);
         SimpleAmazonLogs.addLog("Test");
-        waitForThread(100);
+        waitForThread(sleep_time_short);
         verify(dao, times(1)).deleteLogsOlderThanTime(anyLong());
         verify(dao, times(1)).insert(any(RecordedLog.class));
         Assert.assertNotSame(SimpleAmazonLogs.last_clear_old_logs_checked, 0);
@@ -115,7 +119,7 @@ public class TestLogs {
         SimpleAmazonLogs.last_clear_old_logs_checked = Long.MAX_VALUE;
         Assert.assertEquals(SimpleAmazonLogs.last_clear_old_logs_checked, Long.MAX_VALUE);
         SimpleAmazonLogs.addLog("Test");
-        waitForThread(100);
+        waitForThread(sleep_time_short);
         verify(dao, times(0)).deleteLogsOlderThanTime(anyLong());
         verify(dao, times(1)).insert(any(RecordedLog.class));
         Assert.assertNotSame(SimpleAmazonLogs.last_clear_old_logs_checked, Long.MAX_VALUE);
@@ -125,7 +129,7 @@ public class TestLogs {
     public void test_getAllLogs() {
         RecordedLogCallbacks callback = mock(RecordedLogCallbacks.class);
         SimpleAmazonLogs.getAllLogs(callback);
-        waitForThread(100);
+        waitForThread(sleep_time_short);
         verify(dao, times(1)).getAll();
         verify(callback, times(1)).onLogsReady(any(List.class));
     }
@@ -141,7 +145,7 @@ public class TestLogs {
     @Test
     public void test_deleteAllLogs() {
         SimpleAmazonLogs.deleteAllLogs();
-        waitForThread(100);
+        waitForThread(sleep_time_short);
         verify(dao, times(1)).deleteAll();
     }
 
@@ -156,7 +160,7 @@ public class TestLogs {
     @Test
     public void test_getLogsFromSpecificDay() {
         Assert.assertEquals(SimpleAmazonLogs.getLogsFromSpecificDay(1).size(), 0);
-        waitForThread(100);
+        waitForThread(sleep_time_short);
         verify(dao, times(1)).getLogsWithinTimeRange(anyLong(), anyLong());
     }
 
@@ -187,7 +191,7 @@ public class TestLogs {
         logs.add(new RecordedLog());
         doReturn(logs).when(dao).getLogsWithinTimeRange(anyLong(), anyLong());
         List<List<RecordedLog>> list_of_lists = SimpleAmazonLogs.getListOfListOfLogsToUpload();
-        waitForThread(100);
+        waitForThread(sleep_time_short);
         Assert.assertEquals(list_of_lists.size(), 7);
         Assert.assertEquals(list_of_lists.get(0).size(), 1);
         Assert.assertEquals(list_of_lists.get(1).size(), 1);
@@ -270,8 +274,10 @@ public class TestLogs {
             }
         });
 
-        waitForThread(1000);
+        // This sleeps the entire thread and allows the method time to do database operations
+        waitForThread(sleep_time_long);
 
+        // This sleeps the system clock so it does not start the next test for 1 second, giving us time to Assert in onSuccess
         SystemClock.sleep(1000);
     }
 
@@ -301,7 +307,7 @@ public class TestLogs {
 
         SimpleAmazonLogs.uploadLogsToAmazon("directory", null);
 
-        waitForThread(1000);
+        waitForThread(sleep_time_long);
 
         verify(observer, times(1)).setTransferListener(any(TransferListener.class));
     }
@@ -385,13 +391,13 @@ public class TestLogs {
         SimpleAmazonLogs.successful_calls = 0;
 
         SimpleAmazonLogs.getTransferListener(2, list_of_logs1, file, callback).onStateChanged(0, ts);
-        waitForThread(100);
+        waitForThread(sleep_time_short);
 
         SimpleAmazonLogs.unsuccessful_calls = 0;
         SimpleAmazonLogs.successful_calls = 1;
 
         SimpleAmazonLogs.getTransferListener(2, list_of_logs2, file, callback).onStateChanged(0, ts);
-        waitForThread(100);
+        waitForThread(sleep_time_short);
 
         SimpleAmazonLogs.unsuccessful_calls = 0;
         SimpleAmazonLogs.successful_calls = 2;

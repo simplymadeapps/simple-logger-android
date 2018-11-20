@@ -239,7 +239,6 @@ public class SimpleAmazonLogs {
                     for(List<RecordedLog> list_of_logs : list_of_list_of_logs) {
                         final File file = createLogTextFile(list_of_logs); // Create a text file from the logs
                         String filename = list_of_logs.get(0).getTextFileTitle(); // Generate a name for the file
-                        System.out.println(filename);
 
                         // Upload to amazon
                         TransferUtility transferUtility = new TransferUtility(s3, context);

@@ -447,4 +447,13 @@ public class TestLogs {
 
         SystemClock.sleep(1000);
     }
+
+    @Test
+    public void test_RecordedLog() {
+        RecordedLog recordedLog = new RecordedLog();
+        recordedLog.setDate(1000);
+        recordedLog.setId(1);
+        Assert.assertEquals(recordedLog.getId(), 1);
+        Assert.assertEquals(recordedLog.getDate(), 1000);
+    }
 }

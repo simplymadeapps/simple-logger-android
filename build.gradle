@@ -105,8 +105,7 @@ dependencies {
     implementation 'com.amazonaws:aws-android-sdk-s3:2.6.22'
     testImplementation 'commons-logging:commons-logging:1.1.1'
 
-    implementation "android.arch.persistence.room:runtime:1.1.1"
-    annotationProcessor "android.arch.persistence.room:compiler:1.1.1"
+    implementation 'com.snatik:storage:2.1.0'
 
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.powermock:powermock-api-mockito:1.6.6'

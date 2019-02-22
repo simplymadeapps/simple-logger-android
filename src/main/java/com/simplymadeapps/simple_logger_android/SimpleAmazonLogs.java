@@ -4,7 +4,6 @@ import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-import android.util.Log;
 
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
@@ -59,7 +58,7 @@ public class SimpleAmazonLogs {
 
     // Constructor
     protected SimpleAmazonLogs(Application application) {
-        this.storage = new Storage(application.getApplicationContext());
+        this.storage = SimpleAmazonLogsHelper.newStorageInstance(application.getApplicationContext());
         this.context = application.getApplicationContext();
         this.preferences = PreferenceManager.getDefaultSharedPreferences(context);
         this.editor = preferences.edit();
@@ -135,7 +134,6 @@ public class SimpleAmazonLogs {
         if(files != null) {
             for(File file : files) {
                 if(file.lastModified() < System.currentTimeMillis()-decrement) {
-                    Log.d("Deleted Old File",file.getName()+"");
                     file.delete();
                 }
             }

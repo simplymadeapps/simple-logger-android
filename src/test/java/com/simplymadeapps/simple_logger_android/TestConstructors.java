@@ -12,6 +12,5 @@ public class TestConstructors {
     public void testConstructors() {
         // These are empty constructors with no assertations
         TransferHelper th = new TransferHelper();
-        RecordedLog rl = new RecordedLog();
     }
 }

@@ -6,6 +6,10 @@ import com.snatik.storage.Storage;
 
 public class SimpleAmazonLogsHelper {
 
+    protected SimpleAmazonLogsHelper() {
+        // Empty Constructor
+    }
+
     protected static Storage newStorageInstance(Context context) {
         return new Storage(context);
     }

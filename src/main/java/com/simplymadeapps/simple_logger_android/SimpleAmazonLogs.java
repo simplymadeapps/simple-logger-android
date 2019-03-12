@@ -76,14 +76,18 @@ public class SimpleAmazonLogs {
         String logDateTag = date_format_log.format(date);
         storage.createDirectory(storagePath, false);
         createTextFileIfItDoesntExist(textFileName);
-        storage.appendFile(storagePath+File.separator+textFileName, logDateTag+" - "+log+"");
+        storage.appendFile(getFilePath(textFileName), logDateTag+" - "+log+"");
     }
 
     protected static void createTextFileIfItDoesntExist(String fileName) {
-        boolean exists = storage.isFileExist(storagePath+File.separator+fileName);
+        boolean exists = storage.isFileExist(getFilePath(fileName));
         if(!exists) {
-            storage.createFile(storagePath+File.separator+fileName, "");
+            storage.createFile(getFilePath(fileName), "");
         }
+    }
+
+    protected static String getFilePath(String fileName) {
+        return storagePath+File.separator+fileName;
     }
 
     protected static boolean haveNotCheckedForOldLogsInLast24Hrs() {
@@ -103,9 +107,9 @@ public class SimpleAmazonLogs {
     public static String getLogsFromDaysAgo(int daysAgo) {
         long decrement = daysAgo*HRS_24_IN_MS;
         String current_day_title = date_format_title.format(new Date(System.currentTimeMillis()-decrement));
-        boolean exists = storage.isFileExist(storagePath+File.separator+current_day_title);
+        boolean exists = storage.isFileExist(getFilePath(current_day_title));
         if(exists) {
-            return storage.readTextFile(storagePath + File.separator + current_day_title);
+            return storage.readTextFile(getFilePath(current_day_title));
         }
         else {
             // There are no logs for the current day
@@ -130,7 +134,7 @@ public class SimpleAmazonLogs {
     protected static void clearOldLogs() {
         long decrement = daysToKeepInStorage*HRS_24_IN_MS;
         last_clear_old_logs_checked = System.currentTimeMillis();
-        List<File> files = storage.getFiles(storagePath+File.separator);
+        List<File> files = storage.getFiles(getFilePath(""));
         if(files != null) {
             for(File file : files) {
                 if(file.lastModified() < System.currentTimeMillis()-decrement) {

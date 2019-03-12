@@ -256,7 +256,7 @@ public class TestLogs {
             }
         });
 
-        SystemClock.sleep(1000);
+        SystemClock.sleep(100);
     }
 
     @Test
@@ -286,7 +286,7 @@ public class TestLogs {
         waitForThread(sleep_time_long);
 
         // This sleeps the system clock so it does not start the next test for 1 second, giving us time to Assert in onSuccess
-        SystemClock.sleep(1000);
+        SystemClock.sleep(100);
     }
 
     @Test
@@ -362,7 +362,7 @@ public class TestLogs {
 
         verify(ex, times(2)).printStackTrace();
 
-        SystemClock.sleep(1000);
+        SystemClock.sleep(100);
     }
 
     @Test
@@ -406,7 +406,7 @@ public class TestLogs {
         verify(file1, times(0)).delete();
         verify(file2, times(1)).delete();
 
-        SystemClock.sleep(1000);
+        SystemClock.sleep(100);
     }
 
     @Test
@@ -444,7 +444,7 @@ public class TestLogs {
         SimpleAmazonLogs.unsuccessful_calls = 2;
         SimpleAmazonLogs.successful_calls = 0;
 
-        SystemClock.sleep(1000);
+        SystemClock.sleep(100);
     }
 
     @Test

@@ -20,6 +20,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class SimpleAmazonLogs {
 
@@ -44,8 +45,8 @@ public class SimpleAmazonLogs {
     protected static Storage storage;
     protected static String storagePath;
 
-    protected static SimpleDateFormat date_format_log = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
-    protected static SimpleDateFormat date_format_title = new SimpleDateFormat("yyyy-MM-dd");
+    protected static SimpleDateFormat date_format_log = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.US);
+    protected static SimpleDateFormat date_format_title = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
     /**
      * @param application the application object used for storing records
@@ -66,13 +67,30 @@ public class SimpleAmazonLogs {
         this.storagePath = storage.getInternalFilesDirectory()+File.separator+"SIO-Logs";
     }
 
+    protected static String getTextFileTitle(Date date) {
+        String output = date_format_title.format(date);
+        if(output.length() != 10) {
+            // An issue was encountered where SimpleDateFormat outputted the dates with extra 0s
+            // For example, 2019-0008-06.txt or 2019-08-0015.txt
+            // I was not able to find any help online with this problem and I wasn't able to reproduce it in any of my tests
+            // It seems to happen in rare, random cases when parsing the date.  For now, let's just re-parse the date if we detect extra 0's
+            // If this doesn't solve the problem - it must be an issue with how the files are getting saved
+            Date newDate = new Date(System.currentTimeMillis());
+            date_format_title = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+            return date_format_title.format(newDate);
+        }
+        else {
+            return output;
+        }
+    }
+
     public static void addLog(String log) {
         if(haveNotCheckedForOldLogsInLast24Hrs()) { // Only check to clear old logs if we haven't in the last 24 hrs
             clearOldLogs();  // Because adding a log is called frequently, we will use it to check for week old logs and delete them
         }
 
         Date date = new Date(System.currentTimeMillis());
-        String textFileName = date_format_title.format(date);
+        String textFileName = getTextFileTitle(date);
         String logDateTag = date_format_log.format(date);
         storage.createDirectory(storagePath, false);
         createTextFileIfItDoesntExist(textFileName);

@@ -23,9 +23,12 @@ import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.File;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -36,6 +39,7 @@ import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.doReturn;
 import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.powermock.api.mockito.PowerMockito.spy;
 import static org.powermock.api.mockito.PowerMockito.when;
 
 @RunWith(PowerMockRunner.class)
@@ -96,6 +100,36 @@ public class TestLogs {
 
         // Test init when it is not null
         SimpleAmazonLogs.init(application);
+    }
+
+    @Test
+    public void test_getTextFileTitle_good() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        SimpleAmazonLogs.date_format_title = sdf;
+        Date date = new Date(System.currentTimeMillis());
+
+        String expected = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(date);
+
+        String output = SimpleAmazonLogs.getTextFileTitle(date);
+
+        Assert.assertEquals(expected, output);
+        Assert.assertEquals(sdf, SimpleAmazonLogs.date_format_title);
+        Assert.assertEquals(output.length(), 10);
+    }
+
+    @Test
+    public void test_getTextFileTitle_tooLong() {
+        SimpleDateFormat sdf = spy(new SimpleDateFormat("yyyy-00MM-dd", Locale.US));
+        SimpleAmazonLogs.date_format_title = sdf;
+        Date date = new Date(System.currentTimeMillis());
+
+        String expected = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(date);
+
+        String output = SimpleAmazonLogs.getTextFileTitle(date);
+
+        Assert.assertEquals(expected, output);
+        Assert.assertNotSame(sdf, SimpleAmazonLogs.date_format_title);
+        Assert.assertEquals(output.length(), 10);
     }
 
     @Test

@@ -27,7 +27,7 @@ pipeline {
     stage("Coverage") {
       steps {
         sh "docker exec jd-container sudo ./gradlew jacocoTestReport"
-        sh "curl -s https://codecov.io/bash | bash -s -"
+        // sh "curl -s https://codecov.io/bash | bash -s -"
       }
     }
   }

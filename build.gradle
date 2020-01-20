@@ -20,60 +20,7 @@ allprojects {
 }
 
 apply plugin: 'com.android.library'
-
-apply plugin: 'jacoco'
-
-def coverageSourceDirs = [
-        'src/main/java',
-        'src/debug/java'
-]
-
-task jacocoTestReport(type : JacocoReport, dependsOn : 'testDebugUnitTest') {
-    group       = 'Reporting'
-    description = 'Generate JaCoCo coverage reports'
-
-    reports {
-        xml.enabled  = true
-        html.enabled = true
-    }
-
-    classDirectories = fileTree(
-            dir      : 'build/intermediates/classes/debug',
-            excludes : [
-                    'com/simplymadeapps/simple_logger_android/RecordedLogDatabase**',
-                    'com/simplymadeapps/simple_logger_android/RecordedLogDao**',
-                    '**/R.class',
-                    '**/R$*.class',
-                    '**/*$ViewInjector*.*',
-                    '**/*$ViewBinder*.*',
-                    '**/BuildConfig.*',
-                    '**/Manifest*.*',
-                    '**/*RealmProxy.*',
-                    '**/*ColumnInfo.*',
-                    '**/*RealmModule*.*',
-                    '**/AutoValue_*.*',
-                    '**/Dagger*.*',
-                    '**/*Module_Provide*Factory.*',
-                    '**/*_Factory.*',
-                    '**/*_MembersInjector.*',
-                    '**/*_LifecycleAdapter.*'
-            ]
-    )
-
-    sourceDirectories = files(coverageSourceDirs)
-    executionData     = fileTree(
-            dir     : "$buildDir",
-            include : [ 'jacoco/testDebugUnitTest.exec', 'outputs/code-coverage/connected/*coverage.ec' ]
-    )
-
-    doFirst {
-        files('build/intermediates/classes/debug').getFiles().each { file ->
-            if (file.name.contains('$$')) {
-                file.renameTo(file.path.replace('$$', '$'))
-            }
-        }
-    }
-}
+apply from: 'jacoco_offline.gradle'
 
 android {
     compileSdkVersion 27
@@ -81,9 +28,6 @@ android {
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 26
-        versionCode 2
-        versionName "1.1"
-
     }
     testOptions {
         unitTests.returnDefaultValues = true
@@ -96,6 +40,9 @@ android {
         debug {
             testCoverageEnabled = true
         }
+    }
+    dexOptions {
+        preDexLibraries false
     }
 }
 

@@ -18,15 +18,15 @@ pipeline {
     
     stage("Tests") {
      steps {   
-        sh "docker exec jd-container sudo ./gradlew dependencies"        
-        sh "docker exec jd-container sudo ./gradlew check"
+        sh "docker exec jd-container sudo ./gradlew clean"
+        sh "docker exec jd-container sudo ./gradlew createOfflineTestCoverageReport"
      }
    	}
     
     stage("Coverage") {
       steps {
-        sh "docker exec jd-container sudo ./gradlew jacocoTestReport"
-        archiveArtifacts 'build/reports/jacoco/jacocoTestReport/html/**/*.*'
+        sh "docker exec jd-container sudo ./gradlew jacocoTestReport -x test"
+        archiveArtifacts 'build/test-results/jacocoHtml/**/*.*'
       }
     }
   }

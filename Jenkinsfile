@@ -2,14 +2,12 @@ pipeline {
   agent { label "android" }
 
   environment {
-  	CODECOV_TOKEN = credentials("AMAZON_LOGGER_ANDROID_CODECOV_TOKEN")
   }
 
   stages {
     stage("File Setup") {
       steps {
         sh "mv .jenkins/ci-local.properties local.properties"
-        sh "mv .jenkins/ci-gradle.properties gradle.properties"
         sh "docker create -t -i -v $WORKSPACE:/opt/project-android --name jd-container simplymadeapps/docker-android:1.0.0"
         sh "docker start jd-container"
       }
@@ -27,7 +25,7 @@ pipeline {
     stage("Coverage") {
       steps {
         sh "docker exec jd-container sudo ./gradlew jacocoTestReport"
-        // sh "curl -s https://codecov.io/bash | bash -s -"
+        archiveArtifacts 'build/reports/jacoco/jacocoTestReport/html/**/*.*'
       }
     }
   }

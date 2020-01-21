@@ -1,10 +1,6 @@
 pipeline {
   agent { label "android" }
 
-  // Uncomment this block when you need environment variables - it cannot be empty
-  //environment {
-  //}
-
   stages {
     stage("File Setup") {
       steps {

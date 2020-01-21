@@ -26,7 +26,7 @@ task jacocoTestReport(type: JacocoReport, dependsOn: "test") {
     description = "Generate Jacoco coverage reports"
 
     classDirectories = fileTree(
-            dir: 'build/intermediates/classes/debug',
+            dir: 'build/intermediates/javac/debug/classes/',
             excludes: ['**/R.class',
                        '**/R$*.class',
                        '**/BuildConfig.*',
@@ -78,7 +78,7 @@ task createOfflineTestCoverageReport(dependsOn: ['instrument', 'testDebugUnitTes
             }
             structure(name: 'Example') {
                 classfiles {
-                    fileset(dir: "$buildDir.path/intermediates/classes/debug")
+                    fileset(dir: "$buildDir.path/intermediates/javac/debug/classes/")
                 }
                 sourcefiles {
                     fileset(dir: 'src/main/java')
@@ -117,7 +117,7 @@ task instrument(dependsOn:'compileDebugUnitTestSources') {
                 classpath: configurations.jacocoAnt.asPath)
 
         ant.instrument(destdir: offline_instrumented_outputDir) {
-            fileset(dir: "$buildDir.path/intermediates/classes/debug")
+            fileset(dir: "$buildDir.path/intermediates/javac/debug/classes/")
         }
     }
 }

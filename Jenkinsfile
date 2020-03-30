@@ -13,8 +13,7 @@ pipeline {
     // We are running as a circleci user and not as root so we have to add sudo to everything
     
     stage("Tests") {
-     steps {   
-        sh "docker exec jd-container sudo ./gradlew clean"
+     steps {
         sh "docker exec jd-container sudo ./gradlew createOfflineTestCoverageReport"
      }
    	}

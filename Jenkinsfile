@@ -20,7 +20,7 @@ pipeline {
     
     stage("Coverage") {
       steps {
-        sh "docker exec jd-container sudo ./gradlew jacocoTestReport -x test"
+        sh "docker exec jd-container sudo ./gradlew jacocoTestCoverageVerification -x test"
         archiveArtifacts 'build/test-results/jacocoHtml/**/*.*'
       }
     }

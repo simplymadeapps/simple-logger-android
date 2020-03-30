@@ -16,20 +16,20 @@ import static org.powermock.api.mockito.PowerMockito.mock;
 
 public class TestConstructors {
 
-//    @Test
-//    public void testConstructors() {
-//        // These are empty constructors with no assertations
-//        TransferHelper th = new TransferHelper();
-//    }
-//
-//    @Test
-//    public void test_newStorageInstance() {
-//        Assert.assertEquals(SimpleAmazonLogsHelper.newStorageInstance(mock(Context.class)).getClass(), Storage.class);
-//    }
-//
-//    @Test
-//    public void test_helperConstructor() {
-//        SimpleAmazonLogsHelper helpers = new SimpleAmazonLogsHelper();
-//        Assert.assertEquals(helpers.getClass(), SimpleAmazonLogsHelper.class);
-//    }
+    @Test
+    public void testConstructors() {
+        // These are empty constructors with no assertations
+        TransferHelper th = new TransferHelper();
+    }
+
+    @Test
+    public void test_newStorageInstance() {
+        Assert.assertEquals(SimpleAmazonLogsHelper.newStorageInstance(mock(Context.class)).getClass(), Storage.class);
+    }
+
+    @Test
+    public void test_helperConstructor() {
+        SimpleAmazonLogsHelper helpers = new SimpleAmazonLogsHelper();
+        Assert.assertEquals(helpers.getClass(), SimpleAmazonLogsHelper.class);
+    }
 }

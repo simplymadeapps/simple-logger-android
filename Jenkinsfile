@@ -35,12 +35,12 @@ pipeline {
     }
     
     failure {
-      mail body: "<h2>Jenkins Build Failure</h2>Build Number: ${env.BUILD_NUMBER}<br>Branch: ${env.GIT_BRANCH}<br>Build URL: ${env.BUILD_URL}",
+      mail body: "<h2>Android Logger Build Failure</h2>Build Number: ${env.BUILD_NUMBER}<br>Branch: ${env.GIT_BRANCH}<br>Build URL: ${env.BUILD_URL}",
            charset: 'UTF-8',
            from: 'notice@simpleinout.com',
            mimeType: 'text/html',
-           subject: "Jenkins Build Failure: ${env.JOB_NAME}",
-           to: "stephen@simplymadeapps.com";
+           subject: "Android Logger Build Failure: ${env.JOB_NAME}",
+           to: "contact@simplymadeapps.com";
     }
   }
 }

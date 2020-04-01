@@ -13,15 +13,14 @@ pipeline {
     // We are running as a circleci user and not as root so we have to add sudo to everything
     
     stage("Tests") {
-     steps {   
-        sh "docker exec jd-container sudo ./gradlew clean"
+     steps {
         sh "docker exec jd-container sudo ./gradlew createOfflineTestCoverageReport"
      }
    	}
     
     stage("Coverage") {
       steps {
-        sh "docker exec jd-container sudo ./gradlew jacocoTestReport -x test"
+        sh "docker exec jd-container sudo ./gradlew jacocoTestCoverageVerification -x test"
         archiveArtifacts 'build/test-results/jacocoHtml/**/*.*'
       }
     }
@@ -36,12 +35,12 @@ pipeline {
     }
     
     failure {
-      mail body: "<h2>Jenkins Build Failure</h2>Build Number: ${env.BUILD_NUMBER}<br>Branch: ${env.GIT_BRANCH}<br>Build URL: ${env.BUILD_URL}",
+      mail body: "<h2>Android Logger Build Failure</h2>Build Number: ${env.BUILD_NUMBER}<br>Branch: ${env.GIT_BRANCH}<br>Build URL: ${env.BUILD_URL}",
            charset: 'UTF-8',
            from: 'notice@simpleinout.com',
            mimeType: 'text/html',
-           subject: "Jenkins Build Failure: ${env.JOB_NAME}",
-           to: "stephen@simplymadeapps.com";
+           subject: "Android Logger Build Failure: ${env.JOB_NAME}",
+           to: "contact@simplymadeapps.com";
     }
   }
 }

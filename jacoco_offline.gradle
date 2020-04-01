@@ -121,3 +121,26 @@ task instrument(dependsOn:'compileDebugUnitTestSources') {
         }
     }
 }
+
+task jacocoTestCoverageVerification(type: JacocoCoverageVerification, dependsOn: 'jacocoTestReport') {
+    classDirectories = fileTree(
+            dir: 'build/intermediates/javac/debug/classes/',
+            excludes: ['**/R.class',
+                       '**/R$*.class',
+                       '**/BuildConfig.*']
+    )
+
+    sourceDirectories = files(coverageSourceDirs)
+    executionData     = fileTree(
+            dir     : "$buildDir",
+            include : [ 'jacoco/testDebugUnitTest.exec' ]
+    )
+    violationRules {
+        failOnViolation = true
+        rule {
+            limit {
+                minimum = 1.0
+            }
+        }
+    }
+}

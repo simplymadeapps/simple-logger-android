@@ -3,7 +3,7 @@ dist: trusty
 android:
   components:
     - build-tools-28.0.3
-    - android-28
+    - android-27
     - add-on
     - extra
 script:

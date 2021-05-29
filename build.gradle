@@ -1,18 +1,15 @@
 buildscript {
     repositories {
-        jcenter()
         mavenCentral()
-        jcenter()
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.3'
+        classpath 'com.android.tools.build:gradle:4.2.0'
     }
 }
 
 allprojects {
     repositories {
-        jcenter()
         mavenCentral()
         jcenter()
         google()
@@ -23,11 +20,10 @@ apply plugin: 'com.android.library'
 apply from: 'jacoco_offline.gradle'
 
 android {
-    compileSdkVersion 27
-
+    compileSdkVersion 30
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 26
+        targetSdkVersion 30
     }
     testOptions {
         unitTests.returnDefaultValues = true

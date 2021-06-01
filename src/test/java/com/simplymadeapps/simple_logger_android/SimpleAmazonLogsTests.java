@@ -56,9 +56,8 @@ public class SimpleAmazonLogsTests {
         }
     }
 
-    @RunWith(PowerMockRunner.class)
     @PrepareForTest({PreferenceManager.class, SimpleAmazonLogsHelper.class})
-    public static class InitTests {
+    public static class InitTests extends PowerMockTest {
 
         @Test
         public void test_init() {
@@ -302,9 +301,8 @@ public class SimpleAmazonLogsTests {
         }
     }
 
-    @RunWith(PowerMockRunner.class)
     @PrepareForTest({TransferHelper.class})
-    public static class UploadLogsToAmazonTests {
+    public static class UploadLogsToAmazonTests extends PowerMockTest {
 
         @Test
         public void test_uploadLogsToAmazonFailure() {

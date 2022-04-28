@@ -1,3 +1,6 @@
+# Archived
+This project is now archived and will not be updated as we no longer use it any of our projects.
+
 # simple-logger-android
 A simple library for Android that stores logs and uploads them as text files to Amazon S3.
 # Purpose
